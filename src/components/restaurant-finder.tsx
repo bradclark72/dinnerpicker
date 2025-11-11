@@ -57,6 +57,7 @@ export default function RestaurantFinder() {
   const [radius, setRadius] = React.useState([5]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
+  const resultRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     // Only get location on initial load if it's not already set
@@ -97,6 +98,14 @@ export default function RestaurantFinder() {
       setIsLoading(false);
     }
   }, [toast, location]);
+
+  React.useEffect(() => {
+    if (foundRestaurant && resultRef.current) {
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+    }
+  }, [foundRestaurant]);
 
   const handleCuisineToggle = (cuisineName: string) => {
     if (cuisineName === 'Anything') {
@@ -174,7 +183,7 @@ export default function RestaurantFinder() {
           <CardTitle className="font-headline text-4xl">Dinner Picker</CardTitle>
         </div>
         <CardDescription className="pt-2 text-base">
-          Can't decide where to eat? Let fate (and AI) pick for you!
+          Can't decide where to eat? Let fate pick for you!
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -238,10 +247,10 @@ export default function RestaurantFinder() {
       </CardFooter>
 
       {foundRestaurant && (
-        <>
+        <div ref={resultRef}>
             <Separator className="my-6" />
             <RestaurantCard restaurant={foundRestaurant} />
-        </>
+        </div>
       )}
     </Card>
   );
