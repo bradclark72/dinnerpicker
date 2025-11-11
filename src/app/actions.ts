@@ -1,9 +1,9 @@
 'use server';
 
-import { rankRestaurantsFlow } from '@/ai/flows/rankRestaurants';
+import { rankRestaurants } from '@/ai/ai-restaurant-ranker';
 import type { Restaurant } from '@/lib/types';
 
-const API_KEY = 'AIzaSyCkGePqEnaQBUj5g2Ia6_vxKQiWRrboJrQ';
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MILES_TO_METERS = 1609.34;
 
 export async function findRestaurant(data: {
@@ -13,6 +13,10 @@ export async function findRestaurant(data: {
   radius: number;
 }): Promise<{ restaurant: Restaurant | null; error: string | null }> {
   const { lat, lng, cuisines, radius } = data;
+
+  if (!API_KEY) {
+    return { restaurant: null, error: 'Google Maps API key is missing.' };
+  }
 
   if (!lat || !lng) {
     return { restaurant: null, error: 'Location not provided.' };
@@ -35,14 +39,45 @@ export async function findRestaurant(data: {
     if (!searchResult.results || searchResult.results.length === 0) {
       return { restaurant: null, error: 'No restaurants found matching your criteria. Try expanding your search!' };
     }
+    
+    // Pick a random restaurant from the list if only one, otherwise use AI
+    let chosenPlace;
+    if (searchResult.results.length === 1) {
+        chosenPlace = searchResult.results[0];
+    } else {
+        const rankedRestaurants = await rankRestaurants({
+          restaurants: searchResult.results.map((r: any) => ({
+            name: r.name,
+            address: r.vicinity,
+            rating: r.rating,
+            priceLevel: r.price_level,
+            userRatingsTotal: r.user_ratings_total,
+            cuisine: r.types.join(', '),
+          })),
+          userPreferences: {
+            cuisine: cuisines.join(', '),
+          },
+        });
 
-    const chosenPlace = await rankRestaurantsFlow(searchResult.results);
-
-    if (!chosenPlace || !chosenPlace.place_id) {
-      return { restaurant: null, error: 'Could not decide on a restaurant. Please try again.' };
+        if (!rankedRestaurants || rankedRestaurants.length === 0) {
+          return { restaurant: null, error: 'Could not decide on a restaurant. Please try again.' };
+        }
+        
+        // Find the original place object from the ranked result
+        const topRanked = rankedRestaurants[0];
+        chosenPlace = searchResult.results.find((p: any) => p.name === topRanked.name && p.vicinity === topRanked.address);
     }
 
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${chosenPlace.place_id}&fields=name,formatted_address,formatted_phone_number,rating,website,user_ratings_total,geometry&key=${API_KEY}`;
+
+    if (!chosenPlace || !chosenPlace.place_id) {
+      // As a fallback, just pick a random one if AI fails to find the match
+      chosenPlace = searchResult.results[Math.floor(Math.random() * searchResult.results.length)];
+      if (!chosenPlace || !chosenPlace.place_id) {
+        return { restaurant: null, error: 'Could not decide on a restaurant. Please try again.' };
+      }
+    }
+
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${chosenPlace.place_id}&fields=name,formatted_address,formatted_phone_number,rating,website,user_ratings_total,geometry,price_level&key=${API_KEY}`;
     const detailsResponse = await fetch(detailsUrl);
     const detailsResult = await detailsResponse.json();
     
@@ -58,6 +93,7 @@ export async function findRestaurant(data: {
       rating: detailsResult.result.rating,
       user_ratings_total: detailsResult.result.user_ratings_total,
       website: detailsResult.result.website,
+      price_level: detailsResult.result.price_level,
       location: {
         lat: detailsResult.result.geometry.location.lat,
         lng: detailsResult.result.geometry.location.lng,

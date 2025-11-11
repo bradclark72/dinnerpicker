@@ -6,10 +6,12 @@ import {
   Beef,
   Fish,
   Flame,
+  Globe,
   Loader2,
   MapPin,
   Pizza,
   Soup,
+  Utensils,
   UtensilsCrossed,
   Waypoints,
 } from 'lucide-react';
@@ -37,14 +39,14 @@ type Cuisine = {
 };
 
 const cuisines: Cuisine[] = [
+  { id: 'anything', name: 'Anything', icon: <Utensils className="h-5 w-5" /> },
+  { id: 'european', name: 'European', icon: <Globe className="h-5 w-5" /> },
   { id: 'italian', name: 'Italian', icon: <Pizza className="h-5 w-5" /> },
   { id: 'mexican', name: 'Mexican', icon: <Bean className="h-5 w-5" /> },
-  { id: 'chinese', name: 'Chinese', icon: <Soup className="h-5 w-5" /> },
-  { id: 'indian', name: 'Indian', icon: <Flame className="h-5 w-5" /> },
-  { id: 'japanese', name: 'Japanese', icon: <Fish className="h-5 w-5" /> },
   { id: 'american', name: 'American', icon: <Beef className="h-5 w-5" /> },
-  { id: 'thai', name: 'Thai', icon: <UtensilsCrossed className="h-5 w-5" /> },
-  { id: 'french', name: 'French', icon: <Waypoints className="h-5 w-5" /> },
+  { id: 'asian', name: 'Asian', icon: <Soup className="h-5 w-5" /> },
+  { id: 'indian', name: 'Indian', icon: <Flame className="h-5 w-5" /> },
+  { id: 'seafood', name: 'seafood', icon: <Fish className="h-5 w-5" /> },
 ];
 
 export default function RestaurantFinder() {
@@ -94,11 +96,31 @@ export default function RestaurantFinder() {
   }, [toast]);
 
   const handleCuisineToggle = (cuisineName: string) => {
-    setSelectedCuisines((prev) =>
-      prev.includes(cuisineName)
-        ? prev.filter((c) => c !== cuisineName)
-        : [...prev, cuisineName]
-    );
+    if (cuisineName === 'Anything') {
+        if (selectedCuisines.includes('Anything')) {
+            setSelectedCuisines([]);
+        } else {
+            setSelectedCuisines(['Anything', ...cuisines.filter(c => c.name !== 'Anything').map(c => c.name)]);
+        }
+        return;
+    }
+    
+    setSelectedCuisines((prev) => {
+      let newCuisines;
+      if (prev.includes(cuisineName)) {
+        newCuisines = prev.filter((c) => c !== cuisineName && c !== 'Anything');
+      } else {
+        newCuisines = [...prev, cuisineName];
+      }
+
+      const allCuisinesSelected = cuisines.filter(c => c.name !== 'Anything').every(c => newCuisines.includes(c.name));
+
+      if (allCuisinesSelected && !newCuisines.includes('Anything')) {
+        newCuisines.push('Anything');
+      }
+      
+      return newCuisines;
+    });
   };
 
   const handleFindRestaurant = async () => {
@@ -121,10 +143,17 @@ export default function RestaurantFinder() {
     
     setIsLoading(true);
     setFoundRestaurant(null);
+    
+    let cuisinesToSearch = selectedCuisines.filter(c => c !== 'Anything');
+    if (selectedCuisines.includes('Anything') || cuisinesToSearch.length === 0) {
+        // If 'Anything' is selected or no specific cuisine is, don't filter by keyword
+        cuisinesToSearch = []; 
+    }
+
     const { restaurant, error } = await findRestaurant({
       lat: location.lat,
       lng: location.lng,
-      cuisines: selectedCuisines,
+      cuisines: cuisinesToSearch,
       radius: radius[0],
     });
     setIsLoading(false);
