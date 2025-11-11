@@ -40,14 +40,13 @@ export async function findRestaurant(data: {
       return { restaurant: null, error: 'No restaurants found matching your criteria. Try expanding your search!' };
     }
     
-    // Pick a random restaurant from the results
     const chosenPlace = searchResult.results[Math.floor(Math.random() * searchResult.results.length)];
 
     if (!chosenPlace || !chosenPlace.place_id) {
       return { restaurant: null, error: 'Could not decide on a restaurant. Please try again.' };
     }
 
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${chosenPlace.place_id}&fields=name,formatted_address,formatted_phone_number,rating,website,user_ratings_total,geometry,price_level&key=${API_KEY}`;
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${chosenPlace.place_id}&fields=name,formatted_address,formatted_phone_number,rating,website,user_ratings_total,geometry,price_level,photos&key=${API_KEY}`;
     const detailsResponse = await fetch(detailsUrl);
     const detailsResult = await detailsResponse.json();
     
@@ -58,6 +57,15 @@ export async function findRestaurant(data: {
 
     const firstCuisine = cuisines[0]?.toLowerCase() || 'anything';
     const placeholder = PlaceHolderImages.find(p => p.id === firstCuisine) || PlaceHolderImages.find(p => p.id === 'anything');
+    
+    let imageUrl = placeholder?.imageUrl;
+    let imageHint = placeholder?.imageHint;
+
+    if (detailsResult.result.photos && detailsResult.result.photos.length > 0) {
+      const photoReference = detailsResult.result.photos[0].photo_reference;
+      imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1080&photoreference=${photoReference}&key=${API_KEY}`;
+      imageHint = 'restaurant photo';
+    }
 
 
     const finalRestaurant: Restaurant = {
@@ -73,8 +81,8 @@ export async function findRestaurant(data: {
         lng: detailsResult.result.geometry.location.lng,
       },
       place_id: chosenPlace.place_id,
-      image_url: placeholder?.imageUrl,
-      image_hint: placeholder?.imageHint,
+      image_url: imageUrl,
+      image_hint: imageHint,
     };
     
     return { restaurant: finalRestaurant, error: null };
