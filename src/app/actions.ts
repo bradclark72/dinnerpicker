@@ -1,6 +1,5 @@
 'use server';
 
-import { rankRestaurants } from '@/ai/ai-restaurant-ranker';
 import type { Restaurant } from '@/lib/types';
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -40,41 +39,11 @@ export async function findRestaurant(data: {
       return { restaurant: null, error: 'No restaurants found matching your criteria. Try expanding your search!' };
     }
     
-    // Pick a random restaurant from the list if only one, otherwise use AI
-    let chosenPlace;
-    if (searchResult.results.length === 1) {
-        chosenPlace = searchResult.results[0];
-    } else {
-        const rankedRestaurants = await rankRestaurants({
-          restaurants: searchResult.results.map((r: any) => ({
-            name: r.name,
-            address: r.vicinity,
-            rating: r.rating,
-            priceLevel: r.price_level,
-            userRatingsTotal: r.user_ratings_total,
-            cuisine: r.types.join(', '),
-          })),
-          userPreferences: {
-            cuisine: cuisines.join(', '),
-          },
-        });
-
-        if (!rankedRestaurants || rankedRestaurants.length === 0) {
-          return { restaurant: null, error: 'Could not decide on a restaurant. Please try again.' };
-        }
-        
-        // Find the original place object from the ranked result
-        const topRanked = rankedRestaurants[0];
-        chosenPlace = searchResult.results.find((p: any) => p.name === topRanked.name && p.vicinity === topRanked.address);
-    }
-
+    // Pick a random restaurant from the results
+    const chosenPlace = searchResult.results[Math.floor(Math.random() * searchResult.results.length)];
 
     if (!chosenPlace || !chosenPlace.place_id) {
-      // As a fallback, just pick a random one if AI fails to find the match
-      chosenPlace = searchResult.results[Math.floor(Math.random() * searchResult.results.length)];
-      if (!chosenPlace || !chosenPlace.place_id) {
-        return { restaurant: null, error: 'Could not decide on a restaurant. Please try again.' };
-      }
+      return { restaurant: null, error: 'Could not decide on a restaurant. Please try again.' };
     }
 
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${chosenPlace.place_id}&fields=name,formatted_address,formatted_phone_number,rating,website,user_ratings_total,geometry,price_level&key=${API_KEY}`;
