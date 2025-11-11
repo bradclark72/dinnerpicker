@@ -171,7 +171,7 @@ export default function RestaurantFinder() {
       <CardHeader className="text-center">
         <div className="flex justify-center items-center gap-3">
           <UtensilsCrossed className="h-8 w-8 text-primary" />
-          <CardTitle className="font-headline text-4xl">Random Eats</CardTitle>
+          <CardTitle className="font-headline text-4xl">Dinner Picker</CardTitle>
         </div>
         <CardDescription className="pt-2 text-base">
           Can't decide where to eat? Let fate (and AI) pick for you!

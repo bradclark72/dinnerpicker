@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Random Eats',
+  title: 'Dinner Picker',
   description: "Can't decide where to eat? Let us pick for you!",
 };
 
