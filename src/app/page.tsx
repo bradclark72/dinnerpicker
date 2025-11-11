@@ -1,3 +1,5 @@
+'use client';
+
 import RestaurantFinder from '@/components/restaurant-finder';
 import { APIProvider } from '@vis.gl/react-google-maps';
 
