@@ -9,4 +9,6 @@ export type Restaurant = {
     lat: number;
     lng: number;
   };
+  price_level?: number;
+  place_id?: string;
 };

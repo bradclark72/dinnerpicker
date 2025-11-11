@@ -98,7 +98,7 @@ export default function RestaurantCard({ restaurant, onSearchAgain }: Restaurant
           <Search className="mr-2 h-4 w-4" /> Try Again
         </Button>
         <Button asChild>
-            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.address}`} target="_blank" rel="noopener noreferrer">
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.place_id}`} target="_blank" rel="noopener noreferrer">
                 <MapPin className="mr-2 h-4 w-4" />
                 Get Directions
             </a>

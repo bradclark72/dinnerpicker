@@ -97,7 +97,8 @@ export async function findRestaurant(data: {
       location: {
         lat: detailsResult.result.geometry.location.lat,
         lng: detailsResult.result.geometry.location.lng,
-      }
+      },
+      place_id: chosenPlace.place_id,
     };
     
     return { restaurant: finalRestaurant, error: null };
