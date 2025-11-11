@@ -37,8 +37,8 @@ export default function RestaurantCard({ restaurant }: RestaurantCardProps) {
   };
 
   return (
-    <Card className="w-full max-w-2xl shadow-2xl animate-in fade-in duration-700">
-      <CardHeader>
+    <div className="w-full animate-in fade-in duration-700 px-6 pb-6">
+      <CardHeader className="p-0 mb-6">
         <div className="flex items-start justify-between gap-4">
             <div>
                 <CardDescription className="font-semibold text-primary">Your Culinary Destination</CardDescription>
@@ -47,7 +47,7 @@ export default function RestaurantCard({ restaurant }: RestaurantCardProps) {
             <Utensils className="h-10 w-10 text-muted-foreground flex-shrink-0" />
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 p-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             {restaurant.rating && (
@@ -92,7 +92,7 @@ export default function RestaurantCard({ restaurant }: RestaurantCardProps) {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex-col sm:flex-row justify-end gap-4">
+      <CardFooter className="flex-col sm:flex-row justify-end gap-4 p-0 pt-6">
         <Button asChild>
             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.place_id}`} target="_blank" rel="noopener noreferrer">
                 <MapPin className="mr-2 h-4 w-4" />
@@ -100,6 +100,6 @@ export default function RestaurantCard({ restaurant }: RestaurantCardProps) {
             </a>
         </Button>
       </CardFooter>
-    </Card>
+    </div>
   );
 }
