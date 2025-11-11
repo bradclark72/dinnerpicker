@@ -45,7 +45,7 @@ const cuisines: Cuisine[] = [
   { id: 'american', name: 'American', icon: <Beef className="h-5 w-5" /> },
   { id: 'asian', name: 'Asian', icon: <Soup className="h-5 w-5" /> },
   { id: 'indian', name: 'Indian', icon: <Flame className="h-5 w-5" /> },
-  { id: 'seafood', name: 'seafood', icon: <Fish className="h-5 w-5" /> },
+  { id: 'seafood', name: 'Seafood', icon: <Fish className="h-5 w-5" /> },
 ];
 
 export default function RestaurantFinder() {
@@ -115,6 +115,10 @@ export default function RestaurantFinder() {
         // When selecting a specific cuisine, deselect 'Anything'
         newCuisines = [...prev.filter(c => c !== 'Anything'), cuisineName];
       }
+      // If after toggling, no specific cuisines are selected, default back to 'Anything'
+      if(newCuisines.length === 0) {
+        return ['Anything'];
+      }
       return newCuisines;
     });
   };
@@ -164,82 +168,79 @@ export default function RestaurantFinder() {
 
   return (
     <div className="w-full max-w-2xl flex flex-col items-center gap-8">
-      <Card className="w-full shadow-2xl animate-in fade-in duration-500">
-        <CardHeader className="text-center">
-          <div className="flex justify-center items-center gap-3">
-            <UtensilsCrossed className="h-8 w-8 text-primary" />
-            <CardTitle className="font-headline text-4xl">Random Eats</CardTitle>
-          </div>
-          <CardDescription className="pt-2 text-base">
-            Can't decide where to eat? Let fate (and AI) pick for you!
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          <div className="space-y-4">
-            <Label className="text-lg font-semibold">Select Cuisines</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {cuisines.map((cuisine) => (
-                <Toggle
-                  key={cuisine.id}
-                  variant="outline"
-                  aria-label={`Toggle ${cuisine.name}`}
-                  pressed={selectedCuisines.includes(cuisine.name)}
-                  onPressedChange={() => handleCuisineToggle(cuisine.name)}
-                  className="flex justify-start gap-2 text-base"
-                >
-                  {cuisine.icon}
-                  <span>{cuisine.name}</span>
-                </Toggle>
-              ))}
+      {!foundRestaurant ? (
+        <Card className="w-full shadow-2xl animate-in fade-in duration-500">
+          <CardHeader className="text-center">
+            <div className="flex justify-center items-center gap-3">
+              <UtensilsCrossed className="h-8 w-8 text-primary" />
+              <CardTitle className="font-headline text-4xl">Random Eats</CardTitle>
             </div>
-          </div>
-          <div className="space-y-4">
-            <Label htmlFor="radius-slider" className="text-lg font-semibold">
-              Distance (miles)
-            </Label>
-            <div className="flex items-center gap-4">
-              <Slider
-                id="radius-slider"
-                min={1}
-                max={30}
-                step={1}
-                value={radius}
-                onValueChange={setRadius}
-                disabled={isLoading}
-              />
-              <div className="w-12 text-center text-lg font-semibold text-primary">
-                {radius[0]}
+            <CardDescription className="pt-2 text-base">
+              Can't decide where to eat? Let fate (and AI) pick for you!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="space-y-4">
+              <Label className="text-lg font-semibold">Select Cuisines</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {cuisines.map((cuisine) => (
+                  <Toggle
+                    key={cuisine.id}
+                    variant="outline"
+                    aria-label={`Toggle ${cuisine.name}`}
+                    pressed={selectedCuisines.includes(cuisine.name)}
+                    onPressedChange={() => handleCuisineToggle(cuisine.name)}
+                    className="flex justify-start gap-2 text-base"
+                  >
+                    {cuisine.icon}
+                    <span>{cuisine.name}</span>
+                  </Toggle>
+                ))}
               </div>
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button
-            onClick={handleFindRestaurant}
-            disabled={isLoading || !location}
-            className="w-full h-14 text-xl font-bold"
-            size="lg"
-          >
-            {isLoading && !foundRestaurant ? (
-              <>
-                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                Finding a spot...
-              </>
-            ) : (
-              'Find a Restaurant'
+            <div className="space-y-4">
+              <Label htmlFor="radius-slider" className="text-lg font-semibold">
+                Distance (miles)
+              </Label>
+              <div className="flex items-center gap-4">
+                <Slider
+                  id="radius-slider"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={radius}
+                  onValueChange={setRadius}
+                  disabled={isLoading}
+                />
+                <div className="w-12 text-center text-lg font-semibold text-primary">
+                  {radius[0]}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button
+              onClick={handleFindRestaurant}
+              disabled={isLoading || !location}
+              className="w-full h-14 text-xl font-bold"
+              size="lg"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                  Finding a spot...
+                </>
+              ) : (
+                'Find a Restaurant'
+              )}
+            </Button>
+            {locationError && !location && (
+              <p className="text-sm text-destructive text-center flex items-center gap-2"><MapPin className="h-4 w-4" />{locationError}</p>
             )}
-          </Button>
-          {locationError && !location && (
-            <p className="text-sm text-destructive text-center flex items-center gap-2"><MapPin className="h-4 w-4" />{locationError}</p>
-          )}
-        </CardFooter>
-      </Card>
-
-      {foundRestaurant && (
-        <RestaurantCard
-          restaurant={foundRestaurant}
-          onSearchAgain={() => setFoundRestaurant(null)}
-        />
+          </CardFooter>
+        </Card>
+      ) : (
+        <RestaurantCard restaurant={foundRestaurant} />
       )}
     </div>
   );

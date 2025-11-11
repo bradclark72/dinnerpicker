@@ -12,14 +12,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Map, Marker } from '@vis.gl/react-google-maps';
-import { MapPin, Phone, Star, Globe, Utensils, ArrowLeft } from 'lucide-react';
+import { MapPin, Phone, Star, Globe, Utensils } from 'lucide-react';
 
 type RestaurantCardProps = {
   restaurant: Restaurant;
-  onSearchAgain: () => void;
 };
 
-export default function RestaurantCard({ restaurant, onSearchAgain }: RestaurantCardProps) {
+export default function RestaurantCard({ restaurant }: RestaurantCardProps) {
   const StarRating = ({ rating }: { rating: number }) => {
     const fullStars = Math.floor(rating);
     const halfStar = rating % 1 >= 0.5;
@@ -93,10 +92,7 @@ export default function RestaurantCard({ restaurant, onSearchAgain }: Restaurant
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex-col sm:flex-row justify-between gap-4">
-        <Button onClick={onSearchAgain} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Picker
-        </Button>
+      <CardFooter className="flex-col sm:flex-row justify-end gap-4">
         <Button asChild>
             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.place_id}`} target="_blank" rel="noopener noreferrer">
                 <MapPin className="mr-2 h-4 w-4" />
