@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Map, Marker } from '@vis.gl/react-google-maps';
-import { MapPin, Phone, Star, Globe, Utensils, Search } from 'lucide-react';
+import { MapPin, Phone, Star, Globe, Utensils, ArrowLeft } from 'lucide-react';
 
 type RestaurantCardProps = {
   restaurant: Restaurant;
@@ -95,7 +95,7 @@ export default function RestaurantCard({ restaurant, onSearchAgain }: Restaurant
       </CardContent>
       <CardFooter className="flex-col sm:flex-row justify-between gap-4">
         <Button onClick={onSearchAgain} variant="outline">
-          <Search className="mr-2 h-4 w-4" /> Try Again
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Picker
         </Button>
         <Button asChild>
             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.place_id}`} target="_blank" rel="noopener noreferrer">
