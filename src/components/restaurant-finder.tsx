@@ -53,7 +53,7 @@ export default function RestaurantFinder() {
   const { toast } = useToast();
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
-  const [selectedCuisines, setSelectedCuisines] = React.useState<string[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = React.useState<string[]>(['Anything']);
   const [radius, setRadius] = React.useState([5]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
