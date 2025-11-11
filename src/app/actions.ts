@@ -1,6 +1,7 @@
 'use server';
 
 import type { Restaurant } from '@/lib/types';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MILES_TO_METERS = 1609.34;
@@ -55,6 +56,10 @@ export async function findRestaurant(data: {
         return { restaurant: null, error: detailsResult.error_message || 'Failed to fetch restaurant details.' };
     }
 
+    const firstCuisine = cuisines[0]?.toLowerCase() || 'anything';
+    const placeholder = PlaceHolderImages.find(p => p.id === firstCuisine) || PlaceHolderImages.find(p => p.id === 'anything');
+
+
     const finalRestaurant: Restaurant = {
       name: detailsResult.result.name,
       address: detailsResult.result.formatted_address,
@@ -68,6 +73,8 @@ export async function findRestaurant(data: {
         lng: detailsResult.result.geometry.location.lng,
       },
       place_id: chosenPlace.place_id,
+      image_url: placeholder?.imageUrl,
+      image_hint: placeholder?.imageHint,
     };
     
     return { restaurant: finalRestaurant, error: null };

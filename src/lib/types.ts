@@ -11,4 +11,6 @@ export type Restaurant = {
   };
   price_level?: number;
   place_id?: string;
+  image_url?: string;
+  image_hint?: string;
 };

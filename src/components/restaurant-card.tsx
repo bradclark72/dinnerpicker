@@ -1,17 +1,16 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import type { Restaurant } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Map, Marker } from '@vis.gl/react-google-maps';
 import { MapPin, Phone, Star, Globe, Utensils } from 'lucide-react';
 
 type RestaurantCardProps = {
@@ -79,17 +78,17 @@ export default function RestaurantCard({ restaurant }: RestaurantCardProps) {
                 </div>
             )}
           </div>
-          <div className="rounded-lg overflow-hidden h-48 md:h-full w-full border">
-             <Map
-                defaultCenter={restaurant.location}
-                defaultZoom={15}
-                gestureHandling={'none'}
-                disableDefaultUI={true}
-                mapId="e7c8f237209196b"
-                >
-                <Marker position={restaurant.location} />
-             </Map>
-          </div>
+          {restaurant.image_url && (
+            <div className="rounded-lg overflow-hidden h-48 md:h-full w-full border relative">
+              <Image
+                src={restaurant.image_url}
+                alt={restaurant.name}
+                fill
+                className="object-cover"
+                data-ai-hint={restaurant.image_hint}
+              />
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex-col sm:flex-row justify-end gap-4 p-0 pt-6">
