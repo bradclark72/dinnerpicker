@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
-import type { Restaurant } from '@/lib/types';
+import type { Restaurant, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,6 +31,8 @@ import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
+import { useRouter } from 'next/navigation';
+import { decrementSpins, getUserProfile } from '@/firebase/firestore';
 
 type Cuisine = {
   id: string;
@@ -49,21 +51,39 @@ const cuisines: Cuisine[] = [
   { id: 'seafood', name: 'Seafood', icon: <Fish className="h-5 w-5" /> },
 ];
 
-export default function RestaurantFinder() {
+type RestaurantFinderProps = {
+  user: User | null;
+  loading: boolean;
+};
+
+export default function RestaurantFinder({ user, loading }: RestaurantFinderProps) {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
   const [selectedCuisines, setSelectedCuisines] = React.useState<string[]>(['Anything']);
   const [radius, setRadius] = React.useState([5]);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isFinding, setIsFinding] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
+  const [currentUser, setCurrentUser] = React.useState(user);
+
+  React.useEffect(() => {
+    if (user) {
+      const fetchUserProfile = async () => {
+        const userProfile = await getUserProfile(user.id);
+        setCurrentUser(userProfile);
+      }
+      fetchUserProfile();
+    } else {
+      setCurrentUser(null);
+    }
+  }, [user]);
 
   React.useEffect(() => {
     if (location) return;
 
-    setIsLoading(true);
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -71,7 +91,6 @@ export default function RestaurantFinder() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           });
-          setIsLoading(false);
         },
         (error) => {
           let message = 'An unknown error occurred while getting your location.';
@@ -84,7 +103,6 @@ export default function RestaurantFinder() {
             title: 'Location Error',
             description: message,
           });
-          setIsLoading(false);
         }
       );
     } else {
@@ -95,7 +113,6 @@ export default function RestaurantFinder() {
         title: 'Compatibility Error',
         description: message,
       });
-      setIsLoading(false);
     }
   }, [toast, location]);
 
@@ -128,6 +145,11 @@ export default function RestaurantFinder() {
   };
 
   const handleFindRestaurant = async () => {
+    if (currentUser && currentUser.membership === 'free' && currentUser.spinsRemaining === 0) {
+      router.push('/upgrade');
+      return;
+    }
+
     if (!location) {
       toast({
         variant: 'destructive',
@@ -145,10 +167,10 @@ export default function RestaurantFinder() {
       return;
     }
     
-    setIsLoading(true);
+    setIsFinding(true);
     setFoundRestaurant(null);
     
-    let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? [] : selectedCuisines;
+    let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? cuisines.map(c => c.name).filter(c => c.toLowerCase() !== 'anything') : selectedCuisines;
 
     const { restaurant, error } = await findRestaurant({
       lat: location.lat,
@@ -158,7 +180,7 @@ export default function RestaurantFinder() {
     });
     
 
-    setIsLoading(false);
+    setIsFinding(false);
     if (error) {
       toast({
         variant: 'destructive',
@@ -166,24 +188,66 @@ export default function RestaurantFinder() {
         description: error,
       });
     } else if (restaurant) {
+      if (currentUser && currentUser.membership === 'free') {
+        await decrementSpins(currentUser.id);
+        const updatedUser = await getUserProfile(currentUser.id);
+        setCurrentUser(updatedUser);
+      }
       setFoundRestaurant(restaurant);
     }
   };
+  
+  const isLoading = isFinding || loading;
 
   const renderButton = () => {
-    if (isLoading) {
+    if (isLoading && !isFinding) {
+        return (
+          <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
+            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+            Loading...
+          </Button>
+        );
+      }
+
+    if (isFinding) {
       return (
         <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
           <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-          Loading...
+          Finding...
         </Button>
       );
     }
 
+    if (currentUser && currentUser.membership === 'free') {
+        if(currentUser.spinsRemaining > 0) {
+            return (
+                <Button
+                    onClick={handleFindRestaurant}
+                    disabled={!location || isLoading}
+                    className="w-full h-14 text-xl font-bold"
+                    size="lg"
+                >
+                    Find a Restaurant ({currentUser.spinsRemaining} spins remaining)
+                </Button>
+            );
+        } else {
+            return (
+                <Button
+                    onClick={() => router.push('/upgrade')}
+                    className="w-full h-14 text-xl font-bold"
+                    size="lg"
+                >
+                    Upgrade for More Spins
+                </Button>
+            );
+        }
+    }
+
+
     return (
       <Button
         onClick={handleFindRestaurant}
-        disabled={!location}
+        disabled={!location || isLoading}
         className="w-full h-14 text-xl font-bold"
         size="lg"
       >
