@@ -27,7 +27,7 @@ export default function UpgradePage() {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-primary" />
-                Access to future premium features
+                All future premium features
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-primary" />
@@ -36,7 +36,9 @@ export default function UpgradePage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button className="w-full text-lg" size="lg">Choose Monthly</Button>
+            <Button asChild className="w-full text-lg" size="lg">
+              <a href="https://buy.stripe.com/test_fZu6oG3Ma1dR6D540F8AE04">Choose Monthly</a>
+            </Button>
           </CardFooter>
         </Card>
         <Card className="flex flex-col border-2 border-primary shadow-lg">
@@ -67,7 +69,9 @@ export default function UpgradePage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button className="w-full text-lg" size="lg">Choose Lifetime</Button>
+            <Button asChild className="w-full text-lg" size="lg">
+              <a href="https://buy.stripe.com/test_8x26oGaay8GjbXpdBf8AE05">Choose Lifetime</a>
+            </Button>
           </CardFooter>
         </Card>
       </div>
