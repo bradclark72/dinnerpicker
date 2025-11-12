@@ -14,7 +14,7 @@ import {
   Utensils,
   UtensilsCrossed,
 } from 'lucide-react';
-import { doc, getDoc, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, runTransaction, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
@@ -35,6 +35,8 @@ import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { useFirestore, useUser } from '@/firebase';
 import type { UserProfile } from '@/lib/types';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 type Cuisine = {
   id: string;
@@ -76,6 +78,9 @@ export default function RestaurantFinder() {
         if (docSnap.exists()) {
           setUserProfile(docSnap.data() as UserProfile);
         }
+      }).catch(error => {
+        // This could be a permissions error if rules are not set up
+        console.error("Error fetching user profile:", error);
       });
     } else {
       setUserProfile(null);
@@ -198,29 +203,37 @@ export default function RestaurantFinder() {
         title: 'Search Failed',
         description: error,
       });
+      setIsLoading(false);
     } else if (restaurant) {
       if (!isMember) {
         // Decrement spins
         const userDocRef = doc(firestore, 'users', user.uid);
-        try {
-          await runTransaction(firestore, async (transaction) => {
-            const userDoc = await transaction.get(userDocRef);
-            if (!userDoc.exists()) {
-              throw "Document does not exist!";
-            }
-            const newSpins = userDoc.data().spinsRemaining - 1;
-            transaction.update(userDocRef, { spinsRemaining: newSpins });
-            setUserProfile(prev => prev ? { ...prev, spinsRemaining: newSpins } : null);
-          });
-        } catch (e) {
-          console.error("Transaction failed: ", e);
-          toast({ variant: 'destructive', title: 'Error', description: 'Could not update your spin count.' });
-        }
-      }
-      setFoundRestaurant(restaurant);
-    }
+        const newSpins = userProfile.spinsRemaining - 1;
+        const updateData = { spinsRemaining: newSpins };
+        
+        updateDoc(userDocRef, updateData)
+        .then(() => {
+          setUserProfile(prev => prev ? { ...prev, spinsRemaining: newSpins } : null);
+          setFoundRestaurant(restaurant);
+        })
+        .catch(e => {
+            const permissionError = new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'update',
+              requestResourceData: updateData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }).finally(() => {
+            setIsLoading(false);
+        });
 
-    setIsLoading(false);
+      } else {
+        setFoundRestaurant(restaurant);
+        setIsLoading(false);
+      }
+    } else {
+        setIsLoading(false);
+    }
   };
   
   const renderButtonContent = () => {

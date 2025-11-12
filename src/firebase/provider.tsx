@@ -10,6 +10,7 @@ import {
   useEffect,
 } from 'react';
 import { initializeFirebase } from '.';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 type FirebaseContextValue = {
   firebaseApp: FirebaseApp | null;
@@ -34,6 +35,7 @@ export function FirebaseProvider({ children }: PropsWithChildren) {
   return (
     <FirebaseContext.Provider value={value}>
       {children}
+      {process.env.NODE_ENV === 'development' && <FirebaseErrorListener />}
     </FirebaseContext.Provider>
   );
 }

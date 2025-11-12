@@ -26,6 +26,8 @@ import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -64,20 +66,37 @@ export function AuthForm({ mode }: AuthFormProps) {
         );
         const user = userCredential.user;
         
-        await setDoc(doc(firestore, 'users', user.uid), {
+        const newUserProfile = {
           uid: user.uid,
           email: user.email,
           createdAt: new Date().toISOString(),
           spinsRemaining: 3,
-          membership: 'free',
-        });
-        
-        toast({
-          title: 'Account Created',
-          description: 'You have been successfully signed up!',
-        });
-        router.push('/');
+          membership: 'free' as const,
+        };
 
+        const userDocRef = doc(firestore, 'users', user.uid);
+
+        setDoc(userDocRef, newUserProfile)
+          .then(() => {
+            toast({
+              title: 'Account Created',
+              description: 'You have been successfully signed up!',
+            });
+            router.push('/');
+          })
+          .catch((error) => {
+            const permissionError = new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'create',
+              requestResourceData: newUserProfile,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          })
+          .finally(() => {
+             setIsLoading(false);
+          });
+        
+        return; // Return early because of the async nature of the promise chain
       } else {
         await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({
@@ -93,7 +112,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         description: error.message,
       });
     } finally {
-      setIsLoading(false);
+       if (mode !== 'signup') {
+         setIsLoading(false);
+       }
     }
   }
 
