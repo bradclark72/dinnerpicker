@@ -4,9 +4,16 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
-const features = [
+const monthlyFeatures = [
   "Unlimited restaurant spins",
   "All future premium features",
+  "Cancel anytime",
+];
+
+const lifetimeFeatures = [
+  "Unlimited restaurant spins",
+  "All future premium features",
+  "Save money and enjoy",
 ];
 
 const STRIPE_SUCCESS_URL = 'http://localhost:9002/payment/success?session_id={CHECKOUT_SESSION_ID}';
@@ -28,7 +35,7 @@ export default function UpgradePage() {
           <CardContent className="space-y-4">
             <div className="text-4xl font-bold">$1.99<span className="text-base font-normal text-muted-foreground">/month</span></div>
             <ul className="space-y-2">
-              {features.map((feature, index) => (
+              {monthlyFeatures.map((feature, index) => (
                 <li key={index} className="flex items-center">
                   <CheckCircle className="h-5 w-5 text-primary mr-2" />
                   <span>{feature}</span>
@@ -52,7 +59,7 @@ export default function UpgradePage() {
           <CardContent className="space-y-4">
             <div className="text-4xl font-bold">$19.99<span className="text-base font-normal text-muted-foreground">/lifetime</span></div>
             <ul className="space-y-2">
-              {features.map((feature, index) => (
+              {lifetimeFeatures.map((feature, index) => (
                 <li key={index} className="flex items-center">
                   <CheckCircle className="h-5 w-5 text-primary mr-2" />
                   <span>{feature}</span>
