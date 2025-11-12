@@ -14,11 +14,3 @@ export type Restaurant = {
   image_url?: string;
   image_hint?: string;
 };
-
-export type UserProfile = {
-  id: string;
-  email: string;
-  registrationDate: string;
-  spinsRemaining: number;
-  membership: 'free' | 'monthly' | 'lifetime';
-};

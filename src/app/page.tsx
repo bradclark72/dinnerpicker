@@ -2,8 +2,6 @@
 
 import RestaurantFinder from '@/components/restaurant-finder';
 import { APIProvider } from '@vis.gl/react-google-maps';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
-import AuthButton from '@/components/auth-button';
 
 export default function Home() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -25,15 +23,10 @@ export default function Home() {
   }
 
   return (
-    <FirebaseClientProvider>
-      <APIProvider apiKey={apiKey}>
-        <main className="flex min-h-screen w-full flex-col items-center bg-background p-4 md:p-8">
-          <div className="w-full max-w-2xl flex justify-end mb-4">
-            <AuthButton />
-          </div>
-          <RestaurantFinder />
-        </main>
-      </APIProvider>
-    </FirebaseClientProvider>
+    <APIProvider apiKey={apiKey}>
+      <main className="flex min-h-screen w-full flex-col items-center bg-background p-4 md:p-8">
+        <RestaurantFinder />
+      </main>
+    </APIProvider>
   );
 }
