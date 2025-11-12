@@ -20,7 +20,7 @@ export class FirestorePermissionError extends Error {
 {
   "auth": {},
   "method": "${options.operation}",
-  "path": "/databases/(default)/documents${options.path}"
+  "path": "/databases/(default)/documents/${options.path}"
 }`;
     super(message);
     this.name = 'FirestorePermissionError';
