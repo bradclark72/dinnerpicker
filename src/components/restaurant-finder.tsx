@@ -14,6 +14,8 @@ import {
   Utensils,
   UtensilsCrossed,
 } from 'lucide-react';
+import { doc, getDoc, runTransaction } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
 import type { Restaurant } from '@/lib/types';
@@ -31,6 +33,8 @@ import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
+import { useFirestore, useUser } from '@/firebase';
+import type { UserProfile } from '@/lib/types';
 
 type Cuisine = {
   id: string;
@@ -51,6 +55,11 @@ const cuisines: Cuisine[] = [
 
 export default function RestaurantFinder() {
   const { toast } = useToast();
+  const router = useRouter();
+  const firestore = useFirestore();
+  const { user, loading: userLoading } = useUser();
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
   const [selectedCuisines, setSelectedCuisines] = React.useState<string[]>(['Anything']);
@@ -60,7 +69,20 @@ export default function RestaurantFinder() {
   const resultRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    // Only get location on initial load if it's not already set
+    // Fetch user profile from Firestore
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      getDoc(userDocRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          setUserProfile(docSnap.data() as UserProfile);
+        }
+      });
+    } else {
+      setUserProfile(null);
+    }
+  }, [user, firestore]);
+
+  React.useEffect(() => {
     if (location) return;
 
     setIsLoading(true);
@@ -109,12 +131,8 @@ export default function RestaurantFinder() {
 
   const handleCuisineToggle = (cuisineName: string) => {
     if (cuisineName === 'Anything') {
-        if (selectedCuisines.includes('Anything')) {
-            setSelectedCuisines([]);
-        } else {
-            setSelectedCuisines(['Anything']);
-        }
-        return;
+      setSelectedCuisines(['Anything']);
+      return;
     }
     
     setSelectedCuisines((prev) => {
@@ -122,10 +140,8 @@ export default function RestaurantFinder() {
       if (prev.includes(cuisineName)) {
         newCuisines = prev.filter((c) => c !== cuisineName);
       } else {
-        // When selecting a specific cuisine, deselect 'Anything'
         newCuisines = [...prev.filter(c => c !== 'Anything'), cuisineName];
       }
-      // If after toggling, no specific cuisines are selected, default back to 'Anything'
       if(newCuisines.length === 0) {
         return ['Anything'];
       }
@@ -134,6 +150,19 @@ export default function RestaurantFinder() {
   };
 
   const handleFindRestaurant = async () => {
+    if (!user) {
+      router.push('/signup');
+      return;
+    }
+
+    if (!firestore || !userProfile) return;
+
+    const isMember = userProfile.membership === 'monthly' || userProfile.membership === 'lifetime';
+    if (!isMember && userProfile.spinsRemaining <= 0) {
+      router.push('/upgrade');
+      return;
+    }
+
     if (!location) {
       toast({
         variant: 'destructive',
@@ -162,8 +191,7 @@ export default function RestaurantFinder() {
       cuisines: cuisinesToSearch,
       radius: radius[0],
     });
-    setIsLoading(false);
-
+    
     if (error) {
       toast({
         variant: 'destructive',
@@ -171,10 +199,51 @@ export default function RestaurantFinder() {
         description: error,
       });
     } else if (restaurant) {
+      if (!isMember) {
+        // Decrement spins
+        const userDocRef = doc(firestore, 'users', user.uid);
+        try {
+          await runTransaction(firestore, async (transaction) => {
+            const userDoc = await transaction.get(userDocRef);
+            if (!userDoc.exists()) {
+              throw "Document does not exist!";
+            }
+            const newSpins = userDoc.data().spinsRemaining - 1;
+            transaction.update(userDocRef, { spinsRemaining: newSpins });
+            setUserProfile(prev => prev ? { ...prev, spinsRemaining: newSpins } : null);
+          });
+        } catch (e) {
+          console.error("Transaction failed: ", e);
+          toast({ variant: 'destructive', title: 'Error', description: 'Could not update your spin count.' });
+        }
+      }
       setFoundRestaurant(restaurant);
     }
+
+    setIsLoading(false);
   };
   
+  const renderButtonContent = () => {
+    if (userLoading) {
+      return <Loader2 className="mr-2 h-6 w-6 animate-spin" />;
+    }
+    if (!user) {
+      return 'Sign Up for Free and start picking.';
+    }
+    if (userProfile) {
+      const isMember = userProfile.membership === 'monthly' || userProfile.membership === 'lifetime';
+      if (isMember) {
+        return 'Find a Restaurant';
+      }
+      if (userProfile.spinsRemaining > 0) {
+        return `Find a Restaurant (${userProfile.spinsRemaining} spin${userProfile.spinsRemaining > 1 ? 's' : ''} left)`;
+      }
+      return 'Upgrade Now';
+    }
+    return 'Find a Restaurant';
+  };
+
+
   return (
     <Card className="w-full max-w-2xl shadow-2xl animate-in fade-in duration-500">
       <CardHeader className="text-center">
@@ -228,7 +297,7 @@ export default function RestaurantFinder() {
       <CardFooter className="flex flex-col gap-4">
         <Button
           onClick={handleFindRestaurant}
-          disabled={isLoading || !location}
+          disabled={isLoading || !location || userLoading}
           className="w-full h-14 text-xl font-bold"
           size="lg"
         >
@@ -238,7 +307,7 @@ export default function RestaurantFinder() {
               Finding a spot...
             </>
           ) : (
-            'Find a Restaurant'
+            renderButtonContent()
           )}
         </Button>
         {locationError && !location && (

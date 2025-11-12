@@ -75,6 +75,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           email: user.email,
           displayName: displayName,
           createdAt: new Date().toISOString(),
+          spinsRemaining: 3,
+          membership: 'free',
         });
         
         toast({

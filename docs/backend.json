@@ -22,9 +22,18 @@
           "type": "string",
           "format": "date-time",
           "description": "The date and time the user was created."
+        },
+        "spinsRemaining": {
+          "type": "number",
+          "description": "Number of free restaurant searches remaining."
+        },
+        "membership": {
+          "type": "string",
+          "description": "The user's membership level.",
+          "enum": ["free", "monthly", "lifetime"]
         }
       },
-      "required": ["uid", "email", "createdAt"]
+      "required": ["uid", "email", "createdAt", "spinsRemaining", "membership"]
     }
   },
   "auth": {
