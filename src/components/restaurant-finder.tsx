@@ -14,7 +14,7 @@ import {
   Utensils,
   UtensilsCrossed,
 } from 'lucide-react';
-import { doc, getDoc, runTransaction, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
@@ -79,8 +79,11 @@ export default function RestaurantFinder() {
           setUserProfile(docSnap.data() as UserProfile);
         }
       }).catch(error => {
-        // This could be a permissions error if rules are not set up
-        console.error("Error fetching user profile:", error);
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
     } else {
       setUserProfile(null);
