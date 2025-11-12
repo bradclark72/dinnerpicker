@@ -39,7 +39,7 @@ export default function AuthButton() {
     return (
       <div className="flex items-center gap-4">
         <span className="text-sm text-muted-foreground hidden sm:inline">
-          Welcome, {user.displayName || user.email}
+          Welcome, {user.email}
         </span>
         <Button onClick={handleSignOut} variant="outline" size="sm">
           <LogOut className="mr-2 h-4 w-4" />

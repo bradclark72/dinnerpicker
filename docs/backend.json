@@ -14,10 +14,6 @@
           "format": "email",
           "description": "The user's email address."
         },
-        "displayName": {
-          "type": "string",
-          "description": "The user's display name."
-        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

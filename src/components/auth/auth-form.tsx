@@ -4,7 +4,6 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  updateProfile,
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -31,7 +30,6 @@ import React from 'react';
 const formSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  displayName: z.string().optional(),
 });
 
 type AuthFormProps = {
@@ -49,7 +47,6 @@ export function AuthForm({ mode }: AuthFormProps) {
     defaultValues: {
       email: '',
       password: '',
-      displayName: '',
     },
   });
 
@@ -66,14 +63,10 @@ export function AuthForm({ mode }: AuthFormProps) {
           values.password
         );
         const user = userCredential.user;
-        const displayName = values.displayName || values.email.split('@')[0];
         
-        await updateProfile(user, { displayName });
-
         await setDoc(doc(firestore, 'users', user.uid), {
           uid: user.uid,
           email: user.email,
-          displayName: displayName,
           createdAt: new Date().toISOString(),
           spinsRemaining: 3,
           membership: 'free',
@@ -107,21 +100,6 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {mode === 'signup' && (
-          <FormField
-            control={form.control}
-            name="displayName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Display Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Your Name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
         <FormField
           control={form.control}
           name="email"
