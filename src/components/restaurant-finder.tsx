@@ -191,7 +191,7 @@ export default function RestaurantFinder() {
     setIsLoading(true);
     setFoundRestaurant(null);
     
-    let cuisinesToSearch = selectedCuisines.filter(c => c.toLowerCase() !== 'anything');
+    let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? [] : selectedCuisines;
 
     const { restaurant, error } = await findRestaurant({
       lat: location.lat,
