@@ -14,8 +14,6 @@ import {
   Utensils,
   UtensilsCrossed,
 } from 'lucide-react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
 import type { Restaurant } from '@/lib/types';
@@ -33,10 +31,6 @@ import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
-import { useFirestore, useUser } from '@/firebase';
-import type { UserProfile } from '@/lib/types';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 
 type Cuisine = {
   id: string;
@@ -57,10 +51,6 @@ const cuisines: Cuisine[] = [
 
 export default function RestaurantFinder() {
   const { toast } = useToast();
-  const router = useRouter();
-  const firestore = useFirestore();
-  const { user, loading: userLoading } = useUser();
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -69,26 +59,6 @@ export default function RestaurantFinder() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    // Fetch user profile from Firestore
-    if (user && firestore) {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      getDoc(userDocRef).then((docSnap) => {
-        if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
-        }
-      }).catch(error => {
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-    } else {
-      setUserProfile(null);
-    }
-  }, [user, firestore]);
 
   React.useEffect(() => {
     if (location) return;
@@ -158,19 +128,6 @@ export default function RestaurantFinder() {
   };
 
   const handleFindRestaurant = async () => {
-    if (!user) {
-      router.push('/signup');
-      return;
-    }
-
-    if (!firestore || !userProfile) return;
-
-    const isMember = userProfile.membership === 'monthly' || userProfile.membership === 'lifetime';
-    if (!isMember && userProfile.spinsRemaining <= 0) {
-      router.push('/upgrade');
-      return;
-    }
-
     if (!location) {
       toast({
         variant: 'destructive',
@@ -200,65 +157,17 @@ export default function RestaurantFinder() {
       radius: radius[0],
     });
     
+    setIsLoading(false);
     if (error) {
       toast({
         variant: 'destructive',
         title: 'Search Failed',
         description: error,
       });
-      setIsLoading(false);
     } else if (restaurant) {
-      if (!isMember) {
-        // Decrement spins
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const newSpins = userProfile.spinsRemaining - 1;
-        const updateData = { spinsRemaining: newSpins };
-        
-        updateDoc(userDocRef, updateData)
-        .then(() => {
-          setUserProfile(prev => prev ? { ...prev, spinsRemaining: newSpins } : null);
-          setFoundRestaurant(restaurant);
-        })
-        .catch(e => {
-            const permissionError = new FirestorePermissionError({
-              path: userDocRef.path,
-              operation: 'update',
-              requestResourceData: updateData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }).finally(() => {
-            setIsLoading(false);
-        });
-
-      } else {
-        setFoundRestaurant(restaurant);
-        setIsLoading(false);
-      }
-    } else {
-        setIsLoading(false);
+      setFoundRestaurant(restaurant);
     }
   };
-  
-  const renderButtonContent = () => {
-    if (userLoading) {
-      return <Loader2 className="mr-2 h-6 w-6 animate-spin" />;
-    }
-    if (!user) {
-      return 'Sign Up for Free and start picking.';
-    }
-    if (userProfile) {
-      const isMember = userProfile.membership === 'monthly' || userProfile.membership === 'lifetime';
-      if (isMember) {
-        return 'Find a Restaurant';
-      }
-      if (userProfile.spinsRemaining > 0) {
-        return `Find a Restaurant (${userProfile.spinsRemaining} spin${userProfile.spinsRemaining > 1 ? 's' : ''} left)`;
-      }
-      return 'Upgrade Now';
-    }
-    return 'Find a Restaurant';
-  };
-
 
   return (
     <Card className="w-full max-w-2xl shadow-2xl animate-in fade-in duration-500">
@@ -313,7 +222,7 @@ export default function RestaurantFinder() {
       <CardFooter className="flex flex-col gap-4">
         <Button
           onClick={handleFindRestaurant}
-          disabled={isLoading || !location || userLoading}
+          disabled={isLoading || !location}
           className="w-full h-14 text-xl font-bold"
           size="lg"
         >
@@ -323,7 +232,7 @@ export default function RestaurantFinder() {
               Finding a spot...
             </>
           ) : (
-            renderButtonContent()
+            'Find a Restaurant'
           )}
         </Button>
         {locationError && !location && (
