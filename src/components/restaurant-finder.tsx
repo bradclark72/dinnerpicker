@@ -240,7 +240,7 @@ export default function RestaurantFinder() {
             className="w-full h-14 text-xl font-bold"
             size="lg"
           >
-            {`Find a Restaurant (${userProfile.spinsRemaining} ${userProfile.spinsRemaining === 1 ? 'spin' : 'spins'} left)`}
+            {`Find a Restaurant (${userProfile.spinsRemaining} ${userProfile.spinsRemaining === 1 ? 'spin' : 'spins'} remaining)`}
           </Button>
         );
       }
