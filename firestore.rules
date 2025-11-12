@@ -45,8 +45,12 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if false;
 
+      // Allow create if user is signed in and creating their own document
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      
+      // Allow update if user is owner and not changing their ID
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      
       allow delete: if isExistingOwner(userId);
     }
   }

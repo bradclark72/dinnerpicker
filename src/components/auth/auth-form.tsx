@@ -70,6 +70,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           id: user.uid,
           email: user.email,
           registrationDate: new Date().toISOString(),
+          spinsRemaining: 3,
+          membership: 'free',
         };
 
         const userDocRef = doc(firestore, 'users', user.uid);

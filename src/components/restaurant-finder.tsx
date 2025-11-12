@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
-import type { Restaurant } from '@/lib/types';
+import type { Restaurant, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,6 +31,12 @@ import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
+import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
+import Link from 'next/link';
 
 type Cuisine = {
   id: string;
@@ -51,6 +57,7 @@ const cuisines: Cuisine[] = [
 
 export default function RestaurantFinder() {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -59,6 +66,15 @@ export default function RestaurantFinder() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
+
+  const { user, firestore, isUserLoading } = useFirebase();
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   React.useEffect(() => {
     if (location) return;
@@ -144,6 +160,11 @@ export default function RestaurantFinder() {
       });
       return;
     }
+
+    if (user && userProfile && userProfile.membership === 'free' && userProfile.spinsRemaining <= 0) {
+      router.push('/upgrade');
+      return;
+    }
     
     setIsLoading(true);
     setFoundRestaurant(null);
@@ -157,6 +178,22 @@ export default function RestaurantFinder() {
       radius: radius[0],
     });
     
+    if (user && userDocRef && userProfile?.membership === 'free') {
+      const currentSpins = userProfile.spinsRemaining;
+      if (currentSpins > 0) {
+        const newSpins = currentSpins - 1;
+        setDoc(userDocRef, { spinsRemaining: newSpins }, { merge: true })
+          .catch(error => {
+            const permissionError = new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'update',
+              requestResourceData: { spinsRemaining: newSpins },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          });
+      }
+    }
+
     setIsLoading(false);
     if (error) {
       toast({
@@ -167,6 +204,59 @@ export default function RestaurantFinder() {
     } else if (restaurant) {
       setFoundRestaurant(restaurant);
     }
+  };
+
+  const renderButton = () => {
+    const buttonLoading = isLoading || isUserLoading || (user && isProfileLoading);
+
+    if (buttonLoading) {
+      return (
+        <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
+          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+          Loading...
+        </Button>
+      );
+    }
+
+    if (user && userProfile) {
+      if (userProfile.membership !== 'free') {
+        return (
+          <Button
+            onClick={handleFindRestaurant}
+            disabled={!location}
+            className="w-full h-14 text-xl font-bold"
+            size="lg"
+          >
+            Find a Restaurant
+          </Button>
+        );
+      }
+
+      if (userProfile.spinsRemaining > 0) {
+        return (
+          <Button
+            onClick={handleFindRestaurant}
+            disabled={!location}
+            className="w-full h-14 text-xl font-bold"
+            size="lg"
+          >
+            {`Find a Restaurant (${userProfile.spinsRemaining} ${userProfile.spinsRemaining === 1 ? 'spin' : 'spins'} left)`}
+          </Button>
+        );
+      }
+
+      return (
+        <Button asChild className="w-full h-14 text-xl font-bold" size="lg">
+          <Link href="/upgrade">Upgrade Now</Link>
+        </Button>
+      );
+    }
+
+    return (
+      <Button asChild className="w-full h-14 text-xl font-bold" size="lg">
+        <Link href="/signup">Sign Up for Free and Start Picking</Link>
+      </Button>
+    );
   };
 
   return (
@@ -192,6 +282,7 @@ export default function RestaurantFinder() {
                 pressed={selectedCuisines.includes(cuisine.name)}
                 onPressedChange={() => handleCuisineToggle(cuisine.name)}
                 className="flex justify-start gap-2 text-base"
+                disabled={isLoading}
               >
                 {cuisine.icon}
                 <span>{cuisine.name}</span>
@@ -220,21 +311,7 @@ export default function RestaurantFinder() {
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button
-          onClick={handleFindRestaurant}
-          disabled={isLoading || !location}
-          className="w-full h-14 text-xl font-bold"
-          size="lg"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-              Finding a spot...
-            </>
-          ) : (
-            'Find a Restaurant'
-          )}
-        </Button>
+        {renderButton()}
         {locationError && !location && (
           <p className="text-sm text-destructive text-center flex items-center gap-2"><MapPin className="h-4 w-4" />{locationError}</p>
         )}

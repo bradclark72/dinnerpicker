@@ -19,12 +19,23 @@
           "type": "string",
           "description": "The date and time the user registered.",
           "format": "date-time"
+        },
+        "spinsRemaining": {
+          "type": "number",
+          "description": "The number of free restaurant picks the user has left."
+        },
+        "membership": {
+          "type": "string",
+          "description": "The user's membership status.",
+          "enum": ["free", "monthly", "lifetime"]
         }
       },
       "required": [
         "id",
         "email",
-        "registrationDate"
+        "registrationDate",
+        "spinsRemaining",
+        "membership"
       ]
     }
   },
@@ -42,7 +53,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information. Uses path-based ownership for security. Only the authenticated user can read/write to their own document.",
+          "description": "Stores user profile information, including spin counts and membership status. Uses path-based ownership for security.",
           "params": [
             {
               "name": "userId",
