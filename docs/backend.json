@@ -1,46 +1,63 @@
 {
   "entities": {
     "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
-      "description": "A user of the application.",
       "type": "object",
+      "description": "Represents a user of the Random Eats application.",
       "properties": {
-        "uid": {
+        "id": {
           "type": "string",
-          "description": "The user's unique ID."
+          "description": "Unique identifier for the User entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The user's chosen username."
         },
         "email": {
           "type": "string",
-          "format": "email",
-          "description": "The user's email address."
+          "description": "The user's email address.",
+          "format": "email"
         },
-        "createdAt": {
+        "registrationDate": {
           "type": "string",
-          "format": "date-time",
-          "description": "The date and time the user was created."
-        },
-        "spinsRemaining": {
-          "type": "number",
-          "description": "Number of free restaurant searches remaining."
-        },
-        "membership": {
-          "type": "string",
-          "description": "The user's membership level.",
-          "enum": ["free", "monthly", "lifetime"]
+          "description": "The date and time the user registered.",
+          "format": "date-time"
         }
       },
-      "required": ["uid", "email", "createdAt", "spinsRemaining", "membership"]
+      "required": [
+        "id",
+        "username",
+        "email",
+        "registrationDate"
+      ]
     }
   },
   "auth": {
-    "providers": ["email-password"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": {
-        "$ref": "#/entities/User"
-      },
-      "description": "Stores user profile information."
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Uses path-based ownership for security. Only the authenticated user can read/write to their own document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, corresponding to their Firebase Authentication UID."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure focuses on a simple user authentication system using email/password and anonymous authentication. The primary collection is `/users/{userId}`, where each document stores user profile information. Path-based ownership is used, meaning that only the authenticated user can access their own document. This design prioritizes simplicity for the specified authentication requirements, which is the core requirement specified by the prompt."
   }
 }
