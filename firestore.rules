@@ -27,31 +27,7 @@ service cloud.firestore {
      * @principle Enforces strict user ownership for all operations.
      */
     match /users/{userId} {
-      // Helper function to check if the user is signed in.
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the authenticated user is the owner of the document.
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      // Helper function to check if the authenticated user is the owner of the existing document.
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      // Allow create if user is signed in and creating their own document
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      
-      // Allow update if user is owner and not changing their ID
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
