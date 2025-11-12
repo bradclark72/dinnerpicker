@@ -58,7 +58,7 @@ export async function decrementSpins(userId: string) {
   const userDocRef = doc(db, 'users', userId);
   const user = await getUserProfile(userId);
 
-  if (user && user.spinsRemaining > 0) {
+  if (user && user.membership === 'free' && user.spinsRemaining > 0) {
     const newSpins = user.spinsRemaining - 1;
     updateDoc(userDocRef, { spinsRemaining: newSpins }).catch(error => {
       const permissionError = new FirestorePermissionError({
@@ -69,4 +69,22 @@ export async function decrementSpins(userId: string) {
       errorEmitter.emit('permission-error', permissionError);
     });
   }
+}
+
+export async function updateUserMembership(userId: string, membership: 'monthly' | 'lifetime') {
+    const userDocRef = doc(db, 'users', userId);
+    try {
+        await updateDoc(userDocRef, { membership: membership });
+        return { success: true };
+    } catch (error) {
+        if (error instanceof Error && error.message.includes('permission-denied')) {
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'update',
+                requestData: { membership: membership },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        return { success: false, error: error instanceof Error ? error.message : 'An unknown error occurred' };
+    }
 }

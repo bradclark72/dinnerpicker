@@ -11,6 +11,9 @@ const features = [
   "All future premium features",
 ];
 
+const STRIPE_SUCCESS_URL = 'http://localhost:9002/payment/success?session_id={CHECKOUT_SESSION_ID}';
+const STRIPE_CANCEL_URL = 'http://localhost:9002/';
+
 export default function UpgradePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
@@ -37,7 +40,7 @@ export default function UpgradePage() {
           </CardContent>
           <CardFooter>
             <Button asChild className="w-full">
-              <a href="https://buy.stripe.com/test_fZu6oG3Ma1dR6D540F8AE04" target="_blank" rel="noopener noreferrer">
+              <a href={`https://buy.stripe.com/test_fZu6oG3Ma1dR6D540F8AE04?success_url=${encodeURIComponent(STRIPE_SUCCESS_URL)}&cancel_url=${encodeURIComponent(STRIPE_CANCEL_URL)}`} target="_blank" rel="noopener noreferrer">
                 Choose Monthly
               </a>
             </Button>
@@ -61,7 +64,7 @@ export default function UpgradePage() {
           </CardContent>
           <CardFooter>
             <Button asChild className="w-full">
-              <a href="https://buy.stripe.com/test_8x26oGaay8GjbXpdBf8AE05" target="_blank" rel="noopener noreferrer">
+              <a href={`https://buy.stripe.com/test_8x26oGaay8GjbXpdBf8AE05?success_url=${encodeURIComponent(STRIPE_SUCCESS_URL)}&cancel_url=${encodeURIComponent(STRIPE_CANCEL_URL)}`} target="_blank" rel="noopener noreferrer">
                 Choose Lifetime
               </a>
             </Button>
