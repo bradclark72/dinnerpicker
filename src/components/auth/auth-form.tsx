@@ -67,11 +67,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         const user = userCredential.user;
         
         const newUserProfile = {
-          uid: user.uid,
+          id: user.uid,
           email: user.email,
-          createdAt: new Date().toISOString(),
-          spinsRemaining: 3,
-          membership: 'free' as const,
+          registrationDate: new Date().toISOString(),
         };
 
         const userDocRef = doc(firestore, 'users', user.uid);

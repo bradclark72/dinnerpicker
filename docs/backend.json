@@ -10,10 +10,6 @@
           "type": "string",
           "description": "Unique identifier for the User entity."
         },
-        "username": {
-          "type": "string",
-          "description": "The user's chosen username."
-        },
         "email": {
           "type": "string",
           "description": "The user's email address.",
@@ -27,7 +23,6 @@
       },
       "required": [
         "id",
-        "username",
         "email",
         "registrationDate"
       ]
@@ -35,8 +30,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -58,6 +52,6 @@
         }
       }
     ],
-    "reasoning": "This Firestore structure focuses on a simple user authentication system using email/password and anonymous authentication. The primary collection is `/users/{userId}`, where each document stores user profile information. Path-based ownership is used, meaning that only the authenticated user can access their own document. This design prioritizes simplicity for the specified authentication requirements, which is the core requirement specified by the prompt."
+    "reasoning": "This Firestore structure focuses on a simple user authentication system using email/password. The primary collection is `/users/{userId}`, where each document stores user profile information. Path-based ownership is used, meaning that only the authenticated user can access their own document. This design prioritizes simplicity for the specified authentication requirements, which is the core requirement specified by the prompt."
   }
 }
