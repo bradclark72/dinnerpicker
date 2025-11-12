@@ -1,6 +1,6 @@
 export type SecurityRuleContext = {
   path: string;
-  operation: 'get' | 'list' | 'create' | 'update' | 'delete';
+  operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
   requestResourceData?: any;
 };
 
@@ -10,7 +10,7 @@ function formatContextForLLM(context: SecurityRuleContext): string {
       /* This will be populated by the server with the user's auth context */
     },
     method: context.operation,
-    path: `/databases/(default)/documents${context.path}`,
+    path: `/databases/(default)/documents/${context.path}`,
     ...(context.requestResourceData && {
       request: {
         resource: {
