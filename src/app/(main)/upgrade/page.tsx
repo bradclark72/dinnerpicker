@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 const features = [
   "Unlimited restaurant spins",
-  "Save favorite restaurants",
-  "Exclusive deals and offers",
   "All future premium features",
 ];
 
@@ -28,7 +26,7 @@ export default function UpgradePage() {
             <CardDescription>Perfect for trying out premium features.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-4xl font-bold">$5<span className="text-base font-normal text-muted-foreground">/month</span></div>
+            <div className="text-4xl font-bold">$1.99<span className="text-base font-normal text-muted-foreground">/month</span></div>
             <ul className="space-y-2">
               {features.map((feature, index) => (
                 <li key={index} className="flex items-center">
@@ -52,7 +50,7 @@ export default function UpgradePage() {
             <CardDescription>Pay once, enjoy premium features forever.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-4xl font-bold">$49<span className="text-base font-normal text-muted-foreground">/lifetime</span></div>
+            <div className="text-4xl font-bold">$19.99<span className="text-base font-normal text-muted-foreground">/lifetime</span></div>
             <ul className="space-y-2">
               {features.map((feature, index) => (
                 <li key={index} className="flex items-center">
