@@ -81,31 +81,8 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     }
   }, [user]);
 
-  React.useEffect(() => {
-    if (location) return;
-
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          let message = 'An unknown error occurred while getting your location.';
-          if (error.code === error.PERMISSION_DENIED) {
-            message = 'Please enable location access in your browser to use this feature.';
-          }
-          setLocationError(message);
-          toast({
-            variant: 'destructive',
-            title: 'Location Error',
-            description: message,
-          });
-        }
-      );
-    } else {
+  const requestLocation = React.useCallback(() => {
+    if (!navigator.geolocation) {
       const message = 'Geolocation is not supported by your browser.';
       setLocationError(message);
       toast({
@@ -113,8 +90,48 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
         title: 'Compatibility Error',
         description: message,
       });
+      return;
     }
-  }, [toast, location]);
+  
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationError(null);
+      },
+      (error) => {
+        let message = 'An unknown error occurred while getting your location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          message = 'Please enable location access in your browser to use this feature.';
+        }
+        setLocationError(message);
+        toast({
+          variant: 'destructive',
+          title: 'Location Error',
+          description: message,
+        });
+      }
+    );
+  }, [toast]);
+  
+  React.useEffect(() => {
+    // Check for permissions on mount without fetching location immediately
+    if (navigator.geolocation) {
+      navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
+        if (permissionStatus.state === 'granted') {
+          // Silently get location if permission is already granted
+          requestLocation();
+        } else if (permissionStatus.state === 'prompt') {
+          // The user will be prompted when they click the button.
+          setLocationError('Location access is required. Click the button to grant it.');
+        } else if (permissionStatus.state === 'denied') {
+          setLocationError('Please enable location access in your browser to use this feature.');
+        }
+      });
+    }
+  }, [requestLocation]);
 
   React.useEffect(() => {
     if (foundRestaurant && resultRef.current) {
@@ -151,13 +168,17 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     }
 
     if (!location) {
-      toast({
-        variant: 'destructive',
-        title: 'Location not ready',
-        description: locationError || 'Please wait for location detection or grant permission.',
-      });
-      return;
+      requestLocation(); // Request location on click if not already available
+      if (!location) { // Check again after request
+        toast({
+          variant: 'destructive',
+          title: 'Location not ready',
+          description: locationError || 'Please wait for location detection or grant permission.',
+        });
+        return;
+      }
     }
+
     if (selectedCuisines.length === 0) {
       toast({
         variant: 'destructive',
@@ -223,7 +244,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
             return (
                 <Button
                     onClick={handleFindRestaurant}
-                    disabled={!location || isLoading}
+                    disabled={isLoading}
                     className="w-full h-14 text-xl font-bold"
                     size="lg"
                 >
@@ -247,7 +268,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     return (
       <Button
         onClick={handleFindRestaurant}
-        disabled={!location || isLoading}
+        disabled={isLoading}
         className="w-full h-14 text-xl font-bold"
         size="lg"
       >
