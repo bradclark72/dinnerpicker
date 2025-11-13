@@ -222,19 +222,31 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
 
   const renderButton = () => {
     if (isLoading && !isFinding) {
-        return (
-          <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
-            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-            Loading...
-          </Button>
-        );
-      }
+      return (
+        <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
+          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+          Loading...
+        </Button>
+      );
+    }
 
     if (isFinding) {
       return (
         <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
           <Loader2 className="mr-2 h-6 w-6 animate-spin" />
           Finding...
+        </Button>
+      );
+    }
+    
+    if (!currentUser && !loading) {
+      return (
+        <Button
+          onClick={() => router.push('/login')}
+          className="w-full h-14 text-xl font-bold"
+          size="lg"
+        >
+          Login Now and Start Picking
         </Button>
       );
     }
