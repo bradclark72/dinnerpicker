@@ -4,7 +4,7 @@ import * as React from 'react';
 import { LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 
-import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { signOut } from '@/firebase/auth';
 
 export default function AuthButton() {
-  const { user, loading } = useAuth();
+  const { data: user, isLoading: loading } = useUser();
 
   const handleSignOut = async () => {
     await signOut();

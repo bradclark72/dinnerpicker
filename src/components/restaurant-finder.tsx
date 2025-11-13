@@ -67,7 +67,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   const [isFinding, setIsFinding] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
-  const [currentUser, setCurrentUser] = React.useState(user);
+  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
 
   React.useEffect(() => {
     if (user) {

@@ -1,19 +1,27 @@
 'use client';
 import { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth, AuthProvider } from '@/hooks/use-auth';
+import { useUser } from '@/firebase/auth/use-user';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { updateUserMembership } from '@/firebase/firestore';
 
 function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const { user, loading } = useAuth();
+  const { data: user, isLoading: loading } = useUser();
 
   useEffect(() => {
     // Wait until the auth state is fully loaded and we have a user and session ID.
-    if (loading || !sessionId || !user) {
+    if (loading || !sessionId) {
       return;
+    }
+
+    // If loading is finished but we have no user, something is wrong.
+    // Redirect to login. They might have closed the tab and come back.
+    if (!user) {
+        router.push('/login');
+        return;
     }
 
     const upgradeMembership = async () => {
@@ -74,15 +82,11 @@ function PaymentSuccessPage() {
         </div>
       </div>
     }>
-      <SuccessContent />
+      <FirebaseClientProvider>
+        <SuccessContent />
+      </FirebaseClientProvider>
     </Suspense>
   );
 }
 
-export default function PaymentSuccessPageWrapper() {
-    return (
-        <AuthProvider>
-            <PaymentSuccessPage />
-        </AuthProvider>
-    );
-}
+export default PaymentSuccessPage;

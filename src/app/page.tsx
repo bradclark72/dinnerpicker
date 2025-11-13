@@ -2,8 +2,8 @@
 
 import RestaurantFinder from '@/components/restaurant-finder';
 import { APIProvider } from '@vis.gl/react-google-maps';
-import { useAuth } from '@/hooks/use-auth';
-import { AuthProvider } from '@/hooks/use-auth';
+import { useUser } from '@/firebase/auth/use-user';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 import AuthButton from '@/components/auth-button';
 
 export default function Home() {
@@ -26,12 +26,12 @@ export default function Home() {
   }
 
   const PageContent = () => {
-    const { user, loading } = useAuth();
+    const { data: user, isLoading: loading } = useUser();
     return <RestaurantFinder user={user} loading={loading} />
   }
 
   return (
-    <AuthProvider>
+    <FirebaseClientProvider>
       <header className="fixed top-0 right-0 p-4 z-10">
           <AuthButton />
       </header>
@@ -40,6 +40,6 @@ export default function Home() {
           <PageContent />
         </APIProvider>
       </main>
-    </AuthProvider>
+    </FirebaseClientProvider>
   );
 }
