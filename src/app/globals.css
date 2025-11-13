@@ -86,3 +86,32 @@ body {
     @apply bg-background text-foreground;
   }
 }
+/* Seasonal Background Styles */
+.seasonal-bg {
+  transition: background-image 0.5s ease-in-out;
+}
+
+.seasonal-bg.spring {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.seasonal-bg.summer {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.seasonal-bg.autumn {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.seasonal-bg.winter {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
+/* Add subtle overlay for readability */
+.seasonal-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 1;
+}

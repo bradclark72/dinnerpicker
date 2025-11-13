@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import SeasonalBackground from '@/components/seasonalbackground';
 
 export const metadata: Metadata = {
   title: 'Dinner Picker',
@@ -23,8 +24,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
+        <SeasonalBackground />
+        <div className="relative z-10">
           {children}
-          <Toaster />
+        </div>
+        <Toaster />
       </body>
     </html>
   );
