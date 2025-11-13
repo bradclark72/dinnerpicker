@@ -1,43 +1,19 @@
 'use client';
 import { useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useUser } from '@/firebase/auth/use-user';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { updateUserMembership } from '@/firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 function SuccessContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
-  const { data: user, isLoading: loading } = useUser();
 
   useEffect(() => {
-    // Wait until the auth state is fully loaded and we have a user and session ID.
-    if (loading || !sessionId) {
-      return;
-    }
+    // Redirect to the home page after a short delay.
+    // The webhook will handle the membership update.
+    const timer = setTimeout(() => {
+      router.push('/');
+    }, 5000); // 5-second delay to allow user to read the message
 
-    // If loading is finished but we have no user, something is wrong.
-    // Redirect to login. They might have closed the tab and come back.
-    if (!user) {
-        router.push('/login');
-        return;
-    }
-
-    const upgradeMembership = async () => {
-      // In a real app, you would verify the session ID with your backend/Stripe.
-      // For this prototype, we assume the session is valid and upgrade the user.
-      // A check to see which product was purchased would determine monthly vs lifetime.
-      await updateUserMembership(user.id, 'lifetime');
-
-      // Redirect to the home page after a short delay to show the success message.
-      setTimeout(() => {
-        router.push('/');
-      }, 3000);
-    };
-
-    upgradeMembership();
-  }, [sessionId, user, router, loading]);
+    return () => clearTimeout(timer); // Cleanup timer on component unmount
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -63,7 +39,7 @@ function SuccessContent() {
         </h1>
         
         <p className="text-muted-foreground mb-6">
-          Thank you for your subscription. Your account has been upgraded. You will be redirected shortly.
+          Thank you for your purchase! Your account is being upgraded. You will be redirected to the app shortly.
         </p>
         
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -82,9 +58,7 @@ function PaymentSuccessPage() {
         </div>
       </div>
     }>
-      <FirebaseClientProvider>
         <SuccessContent />
-      </FirebaseClientProvider>
     </Suspense>
   );
 }

@@ -88,3 +88,15 @@ export async function updateUserMembership(userId: string, membership: 'monthly'
         return { success: false, error: error instanceof Error ? error.message : 'An unknown error occurred' };
     }
 }
+
+// This function is intended to be called from a trusted server environment (like a webhook)
+export async function updateUserMembershipFromStripe(userId: string, membership: 'monthly' | 'lifetime') {
+  const userDocRef = doc(db, 'users', userId);
+  try {
+    await updateDoc(userDocRef, { membership: membership, spinsRemaining: -1 }); // -1 can mean unlimited
+    return { success: true };
+  } catch (error) {
+    console.error(`Failed to update membership for user ${userId}:`, error);
+    return { success: false, error: error instanceof Error ? error.message : 'An unknown error occurred' };
+  }
+}

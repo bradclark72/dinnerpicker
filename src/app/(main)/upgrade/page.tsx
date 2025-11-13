@@ -1,8 +1,15 @@
+'use client';
+
 import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useUser } from '@/firebase/auth/use-user';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { Loader2 } from 'lucide-react';
+import { createCheckoutSession } from '@/app/actions/stripe';
+import { useToast } from '@/hooks/use-toast';
 
 const monthlyFeatures = [
   "Unlimited restaurant spins",
@@ -16,10 +23,42 @@ const lifetimeFeatures = [
   "Save money and enjoy",
 ];
 
-const STRIPE_SUCCESS_URL = 'http://localhost:9002/payment/success?session_id={CHECKOUT_SESSION_ID}';
-const STRIPE_CANCEL_URL = 'http://localhost:9002/';
+function UpgradePageContent() {
+  const { data: user, isLoading: userLoading } = useUser();
+  const { toast } = useToast();
 
-export default function UpgradePage() {
+  const handleChoosePlan = async (priceId: string) => {
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Not logged in',
+            description: 'You must be logged in to upgrade your plan.',
+        });
+      return;
+    }
+
+    try {
+      const url = await createCheckoutSession(user.id, priceId, window.location.origin);
+      if(url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error instanceof Error ? error.message : 'Could not create checkout session.',
+        });
+    }
+  };
+
+  if(userLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
       <div className="text-center mb-8">
@@ -44,10 +83,8 @@ export default function UpgradePage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button asChild className="w-full">
-              <a href={`https://buy.stripe.com/test_fZu6oG3Ma1dR6D540F8AE04?success_url=${encodeURIComponent(STRIPE_SUCCESS_URL)}&cancel_url=${encodeURIComponent(STRIPE_CANCEL_URL)}`} target="_blank" rel="noopener noreferrer">
+            <Button onClick={() => handleChoosePlan(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!)} className="w-full">
                 Choose Monthly
-              </a>
             </Button>
           </CardFooter>
         </Card>
@@ -68,10 +105,8 @@ export default function UpgradePage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button asChild className="w-full">
-              <a href={`https://buy.stripe.com/test_8x26oGaay8GjbXpdBf8AE05?success_url=${encodeURIComponent(STRIPE_SUCCESS_URL)}&cancel_url=${encodeURIComponent(STRIPE_CANCEL_URL)}`} target="_blank" rel="noopener noreferrer">
+            <Button onClick={() => handleChoosePlan(process.env.NEXT_PUBLIC_STRIPE_LIFETIME_PRICE_ID!)} className="w-full">
                 Choose Lifetime
-              </a>
             </Button>
           </CardFooter>
         </Card>
@@ -85,4 +120,13 @@ export default function UpgradePage() {
         </div>
     </div>
   );
+}
+
+
+export default function UpgradePage() {
+    return (
+        <FirebaseClientProvider>
+            <UpgradePageContent />
+        </FirebaseClientProvider>
+    )
 }

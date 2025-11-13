@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  env: {
+    NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID: process.env.STRIPE_MONTHLY_PRODUCT_ID,
+    NEXT_PUBLIC_STRIPE_LIFETIME_PRICE_ID: process.env.STRIPE_LIFETIME_PRODUCT_ID,
+  },
   images: {
     remotePatterns: [
       {
