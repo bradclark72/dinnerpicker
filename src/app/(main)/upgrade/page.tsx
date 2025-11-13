@@ -83,8 +83,8 @@ function UpgradePageContent() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button onClick={() => handleChoosePlan(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!, 'subscription')} className="w-full">
-                Choose Monthly
+            <Button asChild className="w-full">
+              <a href="https://buy.stripe.com/test_fZu6oG3Ma1dR6D540F8AE04">Choose Monthly</a>
             </Button>
           </CardFooter>
         </Card>
