@@ -9,6 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function createCheckoutSession(
   userId: string,
   priceId: string,
+  mode: 'subscription' | 'payment',
   origin: string
 ): Promise<string | null> {
   if (!userId) {
@@ -27,7 +28,7 @@ export async function createCheckoutSession(
           quantity: 1,
         },
       ],
-      mode: 'subscription',
+      mode: mode,
       success_url: successUrl,
       cancel_url: cancelUrl,
       client_reference_id: userId,

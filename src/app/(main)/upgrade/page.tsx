@@ -27,7 +27,7 @@ function UpgradePageContent() {
   const { data: user, isLoading: userLoading } = useUser();
   const { toast } = useToast();
 
-  const handleChoosePlan = async (priceId: string) => {
+  const handleChoosePlan = async (priceId: string, mode: 'subscription' | 'payment') => {
     if (!user) {
         toast({
             variant: 'destructive',
@@ -38,7 +38,7 @@ function UpgradePageContent() {
     }
 
     try {
-      const url = await createCheckoutSession(user.id, priceId, window.location.origin);
+      const url = await createCheckoutSession(user.id, priceId, mode, window.location.origin);
       if(url) {
         window.location.href = url;
       }
@@ -83,7 +83,7 @@ function UpgradePageContent() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button onClick={() => handleChoosePlan(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!)} className="w-full">
+            <Button onClick={() => handleChoosePlan(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!, 'subscription')} className="w-full">
                 Choose Monthly
             </Button>
           </CardFooter>
@@ -105,7 +105,7 @@ function UpgradePageContent() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button onClick={() => handleChoosePlan(process.env.NEXT_PUBLIC_STRIPE_LIFETIME_PRICE_ID!)} className="w-full">
+            <Button onClick={() => handleChoosePlan(process.env.NEXT_PUBLIC_STRIPE_LIFETIME_PRICE_ID!, 'payment')} className="w-full">
                 Choose Lifetime
             </Button>
           </CardFooter>
