@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, AuthProvider } from '@/hooks/use-auth';
 import { updateUserMembership } from '@/firebase/firestore';
 
 function SuccessContent() {
@@ -64,7 +64,7 @@ function SuccessContent() {
   );
 }
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
@@ -77,4 +77,12 @@ export default function PaymentSuccessPage() {
       <SuccessContent />
     </Suspense>
   );
+}
+
+export default function PaymentSuccessPageWrapper() {
+    return (
+        <AuthProvider>
+            <PaymentSuccessPage />
+        </AuthProvider>
+    );
 }
