@@ -8,27 +8,28 @@ function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (!sessionId || !user) {
+    // Wait until the auth state is fully loaded and we have a user and session ID.
+    if (loading || !sessionId || !user) {
       return;
     }
 
     const upgradeMembership = async () => {
-      // In a real app, you would verify the session ID with your backend/Stripe
-      // For this prototype, we'll assume the session is valid and upgrade the user
-      // A check to see which product was purchased would determine monthly vs lifetime
+      // In a real app, you would verify the session ID with your backend/Stripe.
+      // For this prototype, we assume the session is valid and upgrade the user.
+      // A check to see which product was purchased would determine monthly vs lifetime.
       await updateUserMembership(user.id, 'lifetime');
 
-      // Redirect to the home page after a short delay
+      // Redirect to the home page after a short delay to show the success message.
       setTimeout(() => {
         router.push('/');
-      }, 3000); // 3-second delay to show the success message
+      }, 3000);
     };
 
     upgradeMembership();
-  }, [sessionId, user, router]);
+  }, [sessionId, user, router, loading]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
