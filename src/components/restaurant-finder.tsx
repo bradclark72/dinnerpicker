@@ -32,7 +32,7 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { useRouter } from 'next/navigation';
-import { decrementSpins, getUserProfile } from '@/firebase/firestore';
+import { decrementSpins } from '@/firebase/firestore';
 
 type Cuisine = {
   id: string;
@@ -67,20 +67,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   const [isFinding, setIsFinding] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
-  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
-
-  React.useEffect(() => {
-    if (user) {
-      const fetchUserProfile = async () => {
-        const userProfile = await getUserProfile(user.id);
-        setCurrentUser(userProfile);
-      }
-      fetchUserProfile();
-    } else {
-      setCurrentUser(null);
-    }
-  }, [user]);
-
+  
   const requestLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
       const message = 'Geolocation is not supported by your browser.';
@@ -162,7 +149,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   };
 
   const handleFindRestaurant = async () => {
-    if (currentUser && currentUser.membership === 'free' && currentUser.spinsRemaining === 0) {
+    if (user && user.membership === 'free' && user.spinsRemaining <= 0) {
       router.push('/upgrade');
       return;
     }
@@ -209,10 +196,10 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
         description: error,
       });
     } else if (restaurant) {
-      if (currentUser && currentUser.membership === 'free') {
-        await decrementSpins(currentUser.id);
-        const updatedUser = await getUserProfile(currentUser.id);
-        setCurrentUser(updatedUser);
+      if (user && user.membership === 'free') {
+        await decrementSpins(user.id);
+        // The user object will be updated via the onAuthUserChanged listener in useUser hook
+        // This will trigger a re-render with the updated spins.
       }
       setFoundRestaurant(restaurant);
     }
@@ -221,7 +208,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   const isLoading = isFinding || loading;
 
   const renderButton = () => {
-    if (isLoading && !isFinding) {
+    if (loading) {
       return (
         <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
           <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -239,7 +226,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
       );
     }
     
-    if (!currentUser && !loading) {
+    if (!user) {
       return (
         <Button
           onClick={() => router.push('/login')}
@@ -251,8 +238,8 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
       );
     }
 
-    if (currentUser && currentUser.membership === 'free') {
-        if(currentUser.spinsRemaining > 0) {
+    if (user.membership === 'free') {
+        if(user.spinsRemaining > 0) {
             return (
                 <Button
                     onClick={handleFindRestaurant}
@@ -260,7 +247,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
                     className="w-full h-14 text-xl font-bold"
                     size="lg"
                 >
-                    Find a Restaurant ({currentUser.spinsRemaining} spins remaining)
+                    Find a Restaurant ({user.spinsRemaining} spins remaining)
                 </Button>
             );
         } else {
