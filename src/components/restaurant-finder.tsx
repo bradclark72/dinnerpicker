@@ -33,6 +33,7 @@ import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { useRouter } from 'next/navigation';
 import { decrementSpins } from '@/firebase/firestore';
+import { Skeleton } from './ui/skeleton';
 
 type Cuisine = {
   id: string;
@@ -67,7 +68,12 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   const [isFinding, setIsFinding] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
-  
+  const [hasMounted, setHasMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const requestLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
       const message = 'Geolocation is not supported by your browser.';
@@ -104,14 +110,11 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   }, [toast]);
   
   React.useEffect(() => {
-    // Check for permissions on mount without fetching location immediately
     if (navigator.geolocation) {
       navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
         if (permissionStatus.state === 'granted') {
-          // Silently get location if permission is already granted
           requestLocation();
         } else if (permissionStatus.state === 'prompt') {
-          // The user will be prompted when they click the button.
           setLocationError('Location access is required. Click the button to grant it.');
         } else if (permissionStatus.state === 'denied') {
           setLocationError('Please enable location access in your browser to use this feature.');
@@ -155,8 +158,8 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     }
 
     if (!location) {
-      requestLocation(); // Request location on click if not already available
-      if (!location) { // Check again after request
+      requestLocation();
+      if (!location) {
         toast({
           variant: 'destructive',
           title: 'Location not ready',
@@ -198,8 +201,6 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     } else if (restaurant) {
       if (user && user.membership === 'free') {
         await decrementSpins(user.id);
-        // The user object will be updated via the onAuthUserChanged listener in useUser hook
-        // This will trigger a re-render with the updated spins.
       }
       setFoundRestaurant(restaurant);
     }
@@ -208,15 +209,6 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   const isLoading = isFinding || loading;
 
   const renderButton = () => {
-    if (loading) {
-      return (
-        <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-          Loading...
-        </Button>
-      );
-    }
-
     if (isFinding) {
       return (
         <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
@@ -275,6 +267,42 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
       </Button>
     );
   };
+  
+  if (!hasMounted || loading) {
+    return (
+      <Card className="w-full max-w-2xl shadow-2xl">
+        <CardHeader className="text-center">
+          <div className="flex justify-center items-center gap-3">
+            <UtensilsCrossed className="h-8 w-8 text-primary" />
+            <CardTitle className="font-headline text-4xl">Dinner Picker</CardTitle>
+          </div>
+          <CardDescription className="pt-2 text-base">
+            Can't decide where to eat? Let fate pick for you!
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-32" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[...Array(8)].map((_, i) => (
+                <Skeleton key={i} className="h-10" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-40" />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-2 flex-grow" />
+              <Skeleton className="h-8 w-12" />
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <Skeleton className="h-14 w-full" />
+        </CardFooter>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl shadow-2xl animate-in fade-in duration-500">
