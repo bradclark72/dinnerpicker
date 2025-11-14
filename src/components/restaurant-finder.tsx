@@ -197,7 +197,7 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
         description: error,
       });
     } else if (restaurant) {
-      if (user && user.membership === 'free') {
+      if (user) { // All users will have spins decremented now
         await decrementSpins(user.id);
         refetch(); // Refetch user data to update spin count
       }
@@ -232,19 +232,6 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
           size="lg"
         >
           Login Now and Start Picking
-        </Button>
-      );
-    }
-
-    if (user.membership !== 'free') {
-      return (
-        <Button
-            onClick={handleFindRestaurant}
-            disabled={isFinding}
-            className="w-full h-14 text-xl font-bold"
-            size="lg"
-        >
-            Find a Restaurant (Unlimited)
         </Button>
       );
     }
@@ -378,3 +365,5 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
     </Card>
   );
 }
+
+    
