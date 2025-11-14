@@ -1,9 +1,8 @@
 'use client';
 
-import RestaurantFinder from '@/components/restaurant-finder';
 import { APIProvider } from '@vis.gl/react-google-maps';
+import PageContent from '@/app/(main)/page-content';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import AuthButton from '@/components/auth-button';
 
 export default function Home() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -25,15 +24,10 @@ export default function Home() {
   }
 
   return (
-    <FirebaseClientProvider>
-      <header className="fixed top-0 right-0 p-4 z-20">
-          <AuthButton />
-      </header>
-      <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 md:p-8">
-        <APIProvider apiKey={apiKey}>
-          <RestaurantFinder />
-        </APIProvider>
-      </main>
-    </FirebaseClientProvider>
+    <APIProvider apiKey={apiKey}>
+      <FirebaseClientProvider>
+        <PageContent />
+      </FirebaseClientProvider>
+    </APIProvider>
   );
 }

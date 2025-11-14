@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
-import type { Restaurant } from '@/lib/types';
+import type { Restaurant, User } from '@/lib/types';
 import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,8 +53,13 @@ const cuisines: Cuisine[] = [
   { id: 'seafood', name: 'Seafood', icon: <Fish className="h-5 w-5" /> },
 ];
 
-export default function RestaurantFinder() {
-  const { data: user, isLoading: userLoading, refetch } = useUser();
+type RestaurantFinderProps = {
+    user: User | null;
+    loading: boolean;
+}
+
+export default function RestaurantFinder({user, loading}: RestaurantFinderProps) {
+  const { refetch } = useUser();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -196,7 +201,7 @@ export default function RestaurantFinder() {
   };
   
   const renderButton = () => {
-    if (userLoading) {
+    if (loading) {
         return (
             <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
               <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -264,7 +269,7 @@ export default function RestaurantFinder() {
     );
   };
   
-  if (userLoading) {
+  if (loading) {
     return (
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="text-center">
