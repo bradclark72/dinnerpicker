@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
-import { updateUserMembershipFromStripe } from '@/firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -33,14 +33,17 @@ export async function POST(req: NextRequest) {
       }
       
       let membership: 'monthly' | 'lifetime' | null = null;
+      let spinsRemaining = 0;
       
       if (session.mode === 'subscription') {
           membership = 'monthly';
+          spinsRemaining = -1; // Unlimited
       } else if (session.mode === 'payment') {
           const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
           const priceId = lineItems.data[0].price?.id;
           if (priceId === process.env.NEXT_PUBLIC_STRIPE_LIFETIME_PRICE_ID) {
               membership = 'lifetime';
+              spinsRemaining = -1; // Unlimited
           }
       }
       
@@ -48,7 +51,13 @@ export async function POST(req: NextRequest) {
         throw new Error(`Could not determine membership level from session.`);
       }
 
-      await updateUserMembershipFromStripe(userId, membership);
+      // Update user document using Admin SDK
+      const userRef = adminDb.collection('users').doc(userId);
+      await userRef.update({
+        membership: membership,
+        spinsRemaining: spinsRemaining,
+      });
+
       console.log(`Successfully updated membership for user ${userId} to ${membership}.`);
     }
 
