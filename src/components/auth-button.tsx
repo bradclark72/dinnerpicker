@@ -19,12 +19,17 @@ import { signOut } from '@/firebase/auth';
 
 export default function AuthButton() {
   const { data: user, isLoading: loading } = useUser();
+  const [hasMounted, setHasMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
   };
 
-  if (loading) {
+  if (!hasMounted || loading) {
     return <Button variant="outline" size="sm" disabled>Loading...</Button>;
   }
 
