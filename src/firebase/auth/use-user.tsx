@@ -38,6 +38,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchFullUser = useCallback(async (authUser: FirebaseUser | null) => {
     setIsLoading(true);
+    setError(null);
     if (!authUser) {
       setUser(null);
       setIsLoading(false);
@@ -50,7 +51,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser({ ...authUser, ...userProfile });
       } else {
         // This can happen briefly during signup before firestore doc is created.
-        // We'll rely on the refetch mechanism or a subsequent auth state change.
+        // The full page reload after signup helps mitigate UI showing wrong state.
          setUser(null);
       }
     } catch (e: any) {

@@ -1,15 +1,18 @@
 'use client';
 
 import { UtensilsCrossed } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { signUp } from '@/firebase/auth';
 import AuthForm from '@/components/auth-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SignupPage() {
+  const router = useRouter();
 
   const handleSignup = async (values: { email: string; password: string }) => {
     await signUp(values.email, values.password);
+    // Force a full page reload to ensure all state is cleared and re-fetched
     window.location.href = '/';
   };
 
