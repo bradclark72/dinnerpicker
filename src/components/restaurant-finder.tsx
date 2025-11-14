@@ -33,7 +33,6 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { useRouter } from 'next/navigation';
-import { decrementSpins } from '@/firebase/firestore';
 import { Skeleton } from './ui/skeleton';
 
 type Cuisine = {
@@ -162,11 +161,6 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
       return;
     }
     
-    if (user && user.membership === 'free' && user.spinsRemaining <= 0) {
-      router.push('/upgrade');
-      return;
-    }
-
     if (selectedCuisines.length === 0) {
       toast({
         variant: 'destructive',
@@ -197,10 +191,6 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
         description: error,
       });
     } else if (restaurant) {
-      if (user) { // All users will have spins decremented now
-        await decrementSpins(user.id);
-        refetch(); // Refetch user data to update spin count
-      }
       setFoundRestaurant(restaurant);
     }
   };
@@ -236,28 +226,16 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
       );
     }
     
-    if (user.spinsRemaining > 0) {
-        return (
-            <Button
-                onClick={handleFindRestaurant}
-                disabled={isFinding}
-                className="w-full h-14 text-xl font-bold"
-                size="lg"
-            >
-                Find a Restaurant ({user.spinsRemaining} spins remaining)
-            </Button>
-        );
-    } else {
-        return (
-            <Button
-                onClick={() => router.push('/upgrade')}
-                className="w-full h-14 text-xl font-bold"
-                size="lg"
-            >
-                Upgrade for More Spins
-            </Button>
-        );
-    }
+    return (
+        <Button
+            onClick={handleFindRestaurant}
+            disabled={isFinding}
+            className="w-full h-14 text-xl font-bold"
+            size="lg"
+        >
+            Find a Restaurant
+        </Button>
+    );
   };
   
   if (!hasMounted || loading) {
