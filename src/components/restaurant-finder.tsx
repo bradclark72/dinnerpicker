@@ -115,7 +115,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
         if (permissionStatus.state === 'granted') {
           requestLocation();
         } else if (permissionStatus.state === 'prompt') {
-          setLocationError('Location access is required. Click the button to grant it.');
+          // Do not set error here, let the user click a button if they want to.
         } else if (permissionStatus.state === 'denied') {
           setLocationError('Please enable location access in your browser to use this feature.');
         }
@@ -152,21 +152,21 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   };
 
   const handleFindRestaurant = async () => {
-    if (user && user.membership === 'free' && user.spinsRemaining <= 0) {
-      router.push('/upgrade');
-      return;
-    }
-
     if (!location) {
       requestLocation();
-      if (!location) {
+      if (!navigator.geolocation) {
         toast({
           variant: 'destructive',
           title: 'Location not ready',
-          description: locationError || 'Please wait for location detection or grant permission.',
+          description: 'Please enable location access to find restaurants.',
         });
-        return;
       }
+      return;
+    }
+    
+    if (user && user.membership === 'free' && user.spinsRemaining <= 0) {
+      router.push('/upgrade');
+      return;
     }
 
     if (selectedCuisines.length === 0) {
@@ -206,8 +206,6 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     }
   };
   
-  const isLoading = isFinding || loading;
-
   const renderButton = () => {
     if (isFinding) {
       return (
@@ -235,7 +233,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
             return (
                 <Button
                     onClick={handleFindRestaurant}
-                    disabled={isLoading}
+                    disabled={isFinding}
                     className="w-full h-14 text-xl font-bold"
                     size="lg"
                 >
@@ -259,7 +257,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     return (
       <Button
         onClick={handleFindRestaurant}
-        disabled={isLoading}
+        disabled={isFinding}
         className="w-full h-14 text-xl font-bold"
         size="lg"
       >
@@ -327,7 +325,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
                 pressed={selectedCuisines.includes(cuisine.name)}
                 onPressedChange={() => handleCuisineToggle(cuisine.name)}
                 className="flex justify-start gap-2 text-base"
-                disabled={isLoading}
+                disabled={isFinding}
               >
                 {cuisine.icon}
                 <span>{cuisine.name}</span>
@@ -347,7 +345,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
               step={1}
               value={radius}
               onValueChange={setRadius}
-              disabled={isLoading}
+              disabled={isFinding}
             />
             <div className="w-12 text-center text-lg font-semibold text-primary">
               {radius[0]}
@@ -358,7 +356,9 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
       <CardFooter className="flex flex-col gap-4">
         {renderButton()}
         {locationError && !location && (
-          <p className="text-sm text-destructive text-center flex items-center gap-2"><MapPin className="h-4 w-4" />{locationError}</p>
+          <Button variant="link" onClick={requestLocation}>
+            <MapPin className="mr-2 h-4 w-4" /> Enable Location
+          </Button>
         )}
       </CardFooter>
 

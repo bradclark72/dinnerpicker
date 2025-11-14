@@ -62,9 +62,10 @@ function createStore() {
         const userProfile = await getUserProfile(authUser.uid);
         if (userProfile) {
           const userData = { ...authUser, ...userProfile };
-          setState((s) => ({ ...s, user: userData, isLoading: false }));
+          setState((s) => ({ ...s, user: userData, isLoading: false, error: null }));
         } else {
-          throw new Error('User profile not found.');
+          // This can happen briefly during signup before firestore doc is created
+          setState((s) => ({ ...s, user: null, isLoading: true, error: new Error('User profile pending creation.')}));
         }
       } catch (e: any) {
         setState((s) => ({ ...s, user: null, error: e, isLoading: false }));
