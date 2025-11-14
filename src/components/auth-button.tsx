@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser, signOut } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,22 +15,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { signOut } from '@/firebase/auth';
+
 
 export default function AuthButton() {
   const { data: user, isLoading: loading } = useUser();
-  const [hasMounted, setHasMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setHasMounted(true);
-  }, []);
 
   const handleSignOut = async () => {
     await signOut();
+    // Full page reload to ensure all state is cleared
+    window.location.href = '/';
   };
 
-  if (!hasMounted || loading) {
-    return <Button variant="outline" size="sm" disabled>Loading...</Button>;
+  if (loading) {
+    return <Button variant="outline" size="sm" disabled>
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading...
+    </Button>;
   }
 
   if (!user) {

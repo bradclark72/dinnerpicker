@@ -1,61 +1,54 @@
 'use client';
 
-import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  type User as FirebaseUser,
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import type { User as FirebaseUser } from 'firebase/auth';
 import { addUserToFirestore } from './firestore';
+import { getFirebaseApp } from './index';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAuJUXmvmAUtLIAxGxXfHrAkuYFJ4NVxKE",
-  authDomain: "studio-2822881531-c4670.firebaseapp.com",
-  projectId: "studio-2822881531-c4670",
-  storageBucket: "studio-2822881531-c4670.firebasestorage.app",
-  messagingSenderId: "768823222257",
-  appId: "1:768823222257:web:6ef90257cea48b1c94ae50"
-};
+// Initialize Firebase Auth and get a reference to the service
+const app = getFirebaseApp();
+const auth = getAuth(app);
 
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
-
-export function onAuthUserChanged(callback: (user: FirebaseUser | null) => void) {
+export function onAuthUserChanged(
+  callback: (user: FirebaseUser | null) => void
+) {
   return onAuthStateChanged(auth, callback);
 }
 
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string): Promise<void> {
   try {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
-    if (error instanceof Error) {
-        throw new Error('Invalid email or password. Please try again.');
-    }
-    throw error;
+    // We throw a more user-friendly error message
+    throw new Error('Invalid email or password. Please try again.');
   }
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string): Promise<void> {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    // After creating the user, add their profile to Firestore
     await addUserToFirestore(userCredential.user);
-  } catch (error) {
-    if (error instanceof Error) {
-        if ('code' in error && (error as any).code === 'auth/email-already-in-use') {
-            throw new Error('This email address is already in use.');
-        }
-        throw new Error('Could not create account. Please try again.');
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      throw new Error('This email address is already in use.');
     }
-    throw error;
+    // For other errors, provide a generic message
+    throw new Error('Could not create account. Please try again.');
   }
 }
 
-export async function signOut() {
+export async function signOut(): Promise<void> {
   try {
     await firebaseSignOut(auth);
   } catch (error) {
@@ -64,4 +57,5 @@ export async function signOut() {
   }
 }
 
-export { firebaseApp, auth, db };
+// Export auth for other modules that might need it
+export { auth };

@@ -5,12 +5,12 @@ import {
   createContext,
   useContext,
   useCallback,
-  useSyncExternalStore,
 } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { onAuthUserChanged } from '@/firebase/auth';
 import { getUserProfile } from '@/firebase/firestore';
 import type { User } from '@/lib/types';
+import { getAuth } from 'firebase/auth';
 
 export type UserData = FirebaseUser & User;
 
@@ -18,102 +18,64 @@ export type UseUser = {
   data: UserData | null;
   isLoading: boolean;
   error: Error | null;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 };
 
 const UserContext = createContext<UseUser | undefined>(undefined);
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };
 
-function createStore() {
-  let state = {
-    user: null as UserData | null,
-    isLoading: true,
-    error: null as Error | null,
-  };
-  const listeners = new Set<() => void>();
-
-  const emitChange = () => listeners.forEach((l) => l());
-
-  const setState = (
-    updater: (
-      prevState: typeof state
-    ) => typeof state
-  ) => {
-    state = updater(state);
-    emitChange();
-  };
-
-  const store = {
-    subscribe: (listener: () => void) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    getSnapshot: () => state,
-    fetchUser: async (authUser: FirebaseUser) => {
-      setState((s) => ({ ...s, isLoading: true }));
-      try {
-        const userProfile = await getUserProfile(authUser.uid);
-        if (userProfile) {
-          const userData = { ...authUser, ...userProfile };
-          setState((s) => ({ ...s, user: userData, isLoading: false, error: null }));
-        } else {
-          // This can happen briefly during signup before firestore doc is created
-          setState((s) => ({ ...s, user: null, isLoading: true, error: new Error('User profile pending creation.')}));
-        }
-      } catch (e: any) {
-        setState((s) => ({ ...s, user: null, error: e, isLoading: false }));
-      }
-    },
-    clearUser: () => {
-      setState((s) => ({ ...s, user: null, isLoading: false, error: null }));
-    },
-    setLoading: (isLoading: boolean) => {
-        setState(s => ({...s, isLoading}));
-    }
-  };
-
-  return store;
-}
-
-let store: ReturnType<typeof createStore>;
-function getStore() {
-  if (!store) {
-    store = createStore();
-    onAuthUserChanged(async (authUser) => {
-      if (authUser) {
-        await store.fetchUser(authUser);
-      } else {
-        store.clearUser();
-      }
-    });
-  }
-  return store;
-}
-
-
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const store = getStore();
-  const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const refetch = useCallback(async () => {
-    const auth = (await import('@/firebase/auth')).auth;
-    if(auth.currentUser){
-        store.setLoading(true);
-        await store.fetchUser(auth.currentUser);
+  const fetchFullUser = useCallback(async (authUser: FirebaseUser | null) => {
+    setIsLoading(true);
+    if (!authUser) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const userProfile = await getUserProfile(authUser.uid);
+      if (userProfile) {
+        setUser({ ...authUser, ...userProfile });
+      } else {
+        // This can happen briefly during signup before firestore doc is created.
+        // We'll rely on the refetch mechanism or a subsequent auth state change.
+         setUser(null);
+      }
+    } catch (e: any) {
+      setError(e);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onAuthUserChanged(fetchFullUser);
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [fetchFullUser]);
+
+  const refetch = useCallback(async () => {
+    const auth = getAuth();
+    await fetchFullUser(auth.currentUser);
+  }, [fetchFullUser]);
+
   const value: UseUser = {
-    data: state.user,
-    isLoading: state.isLoading,
-    error: state.error,
+    data: user,
+    isLoading,
+    error,
     refetch,
   };
 

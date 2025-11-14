@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
-import type { Restaurant, User } from '@/lib/types';
+import type { Restaurant } from '@/lib/types';
+import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -52,12 +53,8 @@ const cuisines: Cuisine[] = [
   { id: 'seafood', name: 'Seafood', icon: <Fish className="h-5 w-5" /> },
 ];
 
-type RestaurantFinderProps = {
-  user: User | null;
-  loading: boolean;
-};
-
-export default function RestaurantFinder({ user, loading }: RestaurantFinderProps) {
+export default function RestaurantFinder() {
+  const { data: user, isLoading: userLoading, refetch } = useUser();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -68,12 +65,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   const [isFinding, setIsFinding] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
-  const [hasMounted, setHasMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
+  
   const requestLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
       const message = 'Geolocation is not supported by your browser.';
@@ -114,8 +106,6 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
       navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
         if (permissionStatus.state === 'granted') {
           requestLocation();
-        } else if (permissionStatus.state === 'prompt') {
-          // Do not set error here, let the user click a button if they want to.
         } else if (permissionStatus.state === 'denied') {
           setLocationError('Please enable location access in your browser to use this feature.');
         }
@@ -154,13 +144,11 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
   const handleFindRestaurant = async () => {
     if (!location) {
       requestLocation();
-      if (!navigator.geolocation) {
-        toast({
-          variant: 'destructive',
-          title: 'Location not ready',
-          description: 'Please enable location access to find restaurants.',
-        });
-      }
+      toast({
+        variant: 'destructive',
+        title: 'Location not ready',
+        description: 'Please grant location access to find restaurants.',
+      });
       return;
     }
     
@@ -201,12 +189,22 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     } else if (restaurant) {
       if (user && user.membership === 'free') {
         await decrementSpins(user.id);
+        refetch(); // Refetch user data to update spin count
       }
       setFoundRestaurant(restaurant);
     }
   };
   
   const renderButton = () => {
+    if (userLoading) {
+        return (
+            <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+              Loading...
+            </Button>
+          );
+    }
+    
     if (isFinding) {
       return (
         <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
@@ -266,7 +264,7 @@ export default function RestaurantFinder({ user, loading }: RestaurantFinderProp
     );
   };
   
-  if (!hasMounted || loading) {
+  if (userLoading) {
     return (
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="text-center">

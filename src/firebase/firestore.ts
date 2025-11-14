@@ -8,10 +8,10 @@ import {
 } from 'firebase/firestore';
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { User } from '@/lib/types';
-import { firebaseApp } from './config';
+import { getFirebaseApp } from './index';
 import { errorEmitter, FirestorePermissionError } from './errors';
 
-const db = getFirestore(firebaseApp);
+const db = getFirestore(getFirebaseApp());
 
 export async function addUserToFirestore(firebaseUser: FirebaseUser) {
   const userDocRef = doc(db, 'users', firebaseUser.uid);

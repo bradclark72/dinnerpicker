@@ -2,7 +2,6 @@
 
 import RestaurantFinder from '@/components/restaurant-finder';
 import { APIProvider } from '@vis.gl/react-google-maps';
-import { useUser } from '@/firebase/auth/use-user';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import AuthButton from '@/components/auth-button';
 
@@ -25,19 +24,14 @@ export default function Home() {
     )
   }
 
-  const PageContent = () => {
-    const { data: user, isLoading: loading } = useUser();
-    return <RestaurantFinder user={user} loading={loading} />
-  }
-
   return (
     <FirebaseClientProvider>
-      <header className="fixed top-0 right-0 p-4 z-10">
+      <header className="fixed top-0 right-0 p-4 z-20">
           <AuthButton />
       </header>
-      <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 md:p-8">
+      <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 md:p-8">
         <APIProvider apiKey={apiKey}>
-          <PageContent />
+          <RestaurantFinder />
         </APIProvider>
       </main>
     </FirebaseClientProvider>
