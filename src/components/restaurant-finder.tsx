@@ -236,7 +236,19 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
       );
     }
 
-    // Always show countdown or upgrade button for any logged in user.
+    if (user.membership !== 'free') {
+      return (
+        <Button
+            onClick={handleFindRestaurant}
+            disabled={isFinding}
+            className="w-full h-14 text-xl font-bold"
+            size="lg"
+        >
+            Find a Restaurant (Unlimited)
+        </Button>
+      );
+    }
+    
     if (user.spinsRemaining > 0) {
         return (
             <Button
