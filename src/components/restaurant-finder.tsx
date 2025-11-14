@@ -16,8 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { findRestaurant } from '@/app/actions';
-import type { Restaurant, User } from '@/lib/types';
-import { useUser } from '@/firebase';
+import type { Restaurant } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -32,7 +31,6 @@ import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
-import { useRouter } from 'next/navigation';
 import { Skeleton } from './ui/skeleton';
 
 type Cuisine = {
@@ -52,15 +50,8 @@ const cuisines: Cuisine[] = [
   { id: 'seafood', name: 'Seafood', icon: <Fish className="h-5 w-5" /> },
 ];
 
-type RestaurantFinderProps = {
-    user: User | null;
-    loading: boolean;
-}
-
-export default function RestaurantFinder({user, loading}: RestaurantFinderProps) {
-  const { refetch } = useUser();
+export default function RestaurantFinder() {
   const { toast } = useToast();
-  const router = useRouter();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -195,50 +186,7 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
     }
   };
   
-  const renderButton = () => {
-    if (loading) {
-        return (
-            <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
-              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-              Loading...
-            </Button>
-          );
-    }
-    
-    if (isFinding) {
-      return (
-        <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-          Finding...
-        </Button>
-      );
-    }
-    
-    if (!user) {
-      return (
-        <Button
-          onClick={() => router.push('/login')}
-          className="w-full h-14 text-xl font-bold"
-          size="lg"
-        >
-          Login Now and Start Picking
-        </Button>
-      );
-    }
-    
-    return (
-        <Button
-            onClick={handleFindRestaurant}
-            disabled={isFinding}
-            className="w-full h-14 text-xl font-bold"
-            size="lg"
-        >
-            Find a Restaurant
-        </Button>
-    );
-  };
-  
-  if (!hasMounted || loading) {
+  if (!hasMounted) {
     return (
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="text-center">
@@ -326,7 +274,20 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        {renderButton()}
+        {isFinding ? (
+            <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+              Finding...
+            </Button>
+          ) : (
+            <Button
+              onClick={handleFindRestaurant}
+              className="w-full h-14 text-xl font-bold"
+              size="lg"
+            >
+              Find a Restaurant
+            </Button>
+          )}
         {locationError && !location && (
           <Button variant="link" onClick={requestLocation}>
             <MapPin className="mr-2 h-4 w-4" /> Enable Location
@@ -343,5 +304,3 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
     </Card>
   );
 }
-
-    
