@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { UtensilsCrossed } from 'lucide-react';
 
 import { signIn } from '@/firebase/auth';
@@ -8,11 +7,10 @@ import AuthForm from '@/components/auth-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LoginPage() {
-  const router = useRouter();
 
   const handleLogin = async (values: { email: string; password:string }) => {
     await signIn(values.email, values.password);
-    router.push('/');
+    window.location.href = '/';
   };
 
   return (

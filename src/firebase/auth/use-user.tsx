@@ -31,64 +31,67 @@ export const useUser = () => {
   return context;
 };
 
-function initializeUserStore() {
-  let user: UserData | null = null;
-  let isLoading = true;
-  let error: Error | null = null;
+function createStore() {
+  let state = {
+    user: null as UserData | null,
+    isLoading: true,
+    error: null as Error | null,
+  };
   const listeners = new Set<() => void>();
 
-  let lastSnapshot = { user, isLoading, error };
+  const emitChange = () => listeners.forEach((l) => l());
+
+  const setState = (
+    updater: (
+      prevState: typeof state
+    ) => typeof state
+  ) => {
+    state = updater(state);
+    emitChange();
+  };
 
   const store = {
-    getSnapshot: () => {
-      if (lastSnapshot.user !== user || lastSnapshot.isLoading !== isLoading || lastSnapshot.error !== error) {
-        lastSnapshot = { user, isLoading, error };
-      }
-      return lastSnapshot;
-    },
     subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    emitChange: () => {
-      for (const listener of listeners) {
-        listener();
-      }
-    },
-  };
-
-  onAuthUserChanged(async (authUser) => {
-    isLoading = true;
-    error = null;
-    store.emitChange();
-
-    if (authUser) {
+    getSnapshot: () => state,
+    fetchUser: async (authUser: FirebaseUser) => {
+      setState((s) => ({ ...s, isLoading: true }));
       try {
         const userProfile = await getUserProfile(authUser.uid);
         if (userProfile) {
-          user = { ...authUser, ...userProfile };
+          const userData = { ...authUser, ...userProfile };
+          setState((s) => ({ ...s, user: userData, isLoading: false }));
         } else {
-          // This case might happen if firestore record creation fails after signup
-          user = null;
+          throw new Error('User profile not found.');
         }
       } catch (e: any) {
-        error = e;
-        user = null;
+        setState((s) => ({ ...s, user: null, error: e, isLoading: false }));
       }
-    } else {
-      user = null;
+    },
+    clearUser: () => {
+      setState((s) => ({ ...s, user: null, isLoading: false, error: null }));
+    },
+    setLoading: (isLoading: boolean) => {
+        setState(s => ({...s, isLoading}));
     }
-    isLoading = false;
-    store.emitChange();
-  });
-  
+  };
+
   return store;
 }
 
-let store: ReturnType<typeof initializeUserStore>;
+let store: ReturnType<typeof createStore>;
 function getStore() {
   if (!store) {
-    store = initializeUserStore();
+    store = createStore();
+    onAuthUserChanged(async (authUser) => {
+      if (authUser) {
+        await store.fetchUser(authUser);
+      } else {
+        store.clearUser();
+      }
+    });
   }
   return store;
 }
@@ -96,27 +99,20 @@ function getStore() {
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const store = getStore();
-  const { user, isLoading, error } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
-  const refetch = useCallback(() => {
-    // Re-trigger the auth check
-    onAuthUserChanged(async (authUser) => {
-      if (authUser) {
-        const userProfile = await getUserProfile(authUser.uid);
-        if (userProfile) {
-          getStore().getSnapshot().user = { ...authUser, ...userProfile };
-        }
-      } else {
-        getStore().getSnapshot().user = null;
-      }
-      getStore().emitChange();
-    });
+  const refetch = useCallback(async () => {
+    const auth = (await import('@/firebase/auth')).auth;
+    if(auth.currentUser){
+        store.setLoading(true);
+        await store.fetchUser(auth.currentUser);
+    }
   }, []);
 
   const value: UseUser = {
-    data: user,
-    isLoading,
-    error,
+    data: state.user,
+    isLoading: state.isLoading,
+    error: state.error,
     refetch,
   };
 
