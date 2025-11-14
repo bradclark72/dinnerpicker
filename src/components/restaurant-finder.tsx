@@ -69,8 +69,13 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
   const [radius, setRadius] = React.useState([5]);
   const [isFinding, setIsFinding] = React.useState(false);
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
+  const [hasMounted, setHasMounted] = React.useState(false);
   const resultRef = React.useRef<HTMLDivElement>(null);
   
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const requestLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
       const message = 'Geolocation is not supported by your browser.';
@@ -231,45 +236,32 @@ export default function RestaurantFinder({user, loading}: RestaurantFinderProps)
       );
     }
 
-    if (user.membership === 'free') {
-        if(user.spinsRemaining > 0) {
-            return (
-                <Button
-                    onClick={handleFindRestaurant}
-                    disabled={isFinding}
-                    className="w-full h-14 text-xl font-bold"
-                    size="lg"
-                >
-                    Find a Restaurant ({user.spinsRemaining} spins remaining)
-                </Button>
-            );
-        } else {
-            return (
-                <Button
-                    onClick={() => router.push('/upgrade')}
-                    className="w-full h-14 text-xl font-bold"
-                    size="lg"
-                >
-                    Upgrade for More Spins
-                </Button>
-            );
-        }
+    // Always show countdown or upgrade button for any logged in user.
+    if (user.spinsRemaining > 0) {
+        return (
+            <Button
+                onClick={handleFindRestaurant}
+                disabled={isFinding}
+                className="w-full h-14 text-xl font-bold"
+                size="lg"
+            >
+                Find a Restaurant ({user.spinsRemaining} spins remaining)
+            </Button>
+        );
+    } else {
+        return (
+            <Button
+                onClick={() => router.push('/upgrade')}
+                className="w-full h-14 text-xl font-bold"
+                size="lg"
+            >
+                Upgrade for More Spins
+            </Button>
+        );
     }
-
-
-    return (
-      <Button
-        onClick={handleFindRestaurant}
-        disabled={isFinding}
-        className="w-full h-14 text-xl font-bold"
-        size="lg"
-      >
-        Find a Restaurant
-      </Button>
-    );
   };
   
-  if (loading) {
+  if (!hasMounted || loading) {
     return (
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="text-center">
