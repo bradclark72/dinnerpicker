@@ -31,25 +31,21 @@ export const useUser = () => {
   return context;
 };
 
-let userStore: {
-  user: UserData | null;
-  isLoading: boolean;
-  error: Error | null;
-  listeners: (() => void)[];
-  setUser(user: UserData | null): void;
-  setLoading(loading: boolean): void;
-  setError(error: Error | null): void;
-  subscribe(listener: () => void): () => void;
-};
-
 function initializeUserStore() {
   let user: UserData | null = null;
   let isLoading = true;
   let error: Error | null = null;
   const listeners = new Set<() => void>();
 
+  let lastSnapshot = { user, isLoading, error };
+
   const store = {
-    getSnapshot: () => ({ user, isLoading, error }),
+    getSnapshot: () => {
+      if (lastSnapshot.user !== user || lastSnapshot.isLoading !== isLoading || lastSnapshot.error !== error) {
+        lastSnapshot = { user, isLoading, error };
+      }
+      return lastSnapshot;
+    },
     subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
