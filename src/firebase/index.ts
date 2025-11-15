@@ -1,4 +1,4 @@
-// src/firebase/index.ts
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -55,6 +55,7 @@ export { useUser } from './auth/use-user';
 export {
   FirebaseProvider,
   useFirebase,
+  useAuth, // ✅ Export with original name
   useAuth as useAuthFromProvider,
   useFirestore,
   useFirebaseApp,
