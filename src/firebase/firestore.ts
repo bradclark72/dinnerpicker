@@ -8,7 +8,8 @@ export function decrementSpins(userId: string) {
   if (!userId) {
     return;
   }
-  const { firestore } = initializeFirebase();
+  // This function now correctly gets the initialized db instance
+  const { db: firestore } = initializeFirebase();
   const userDocRef = doc(firestore, `users/${userId}`);
   const updateData = { picksUsed: increment(1) };
 

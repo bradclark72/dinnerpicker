@@ -1,9 +1,8 @@
-// src/app/actions.ts
 'use server';
 
 import type { Restaurant } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import Stripe from 'stripe';
+import { createCheckoutSession as createStripeCheckoutSession } from '@/lib/stripe/create-checkout-session';
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MILES_TO_METERS = 1609.34;
@@ -101,34 +100,17 @@ export async function findRestaurant(data: {
 }
 
 /**
- * createCheckoutSession - Server action used by your upgrade flow to create a Stripe Checkout session.
- * Expects a `uid` string for linking the session to the user (metadata).
+ * createCheckoutSession - Wraps the Stripe checkout session creation.
+ * This function is now just a pass-through to the more robust implementation in /lib/stripe.
  */
-export async function createCheckoutSession(uid: string) {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('Missing STRIPE_SECRET_KEY env var');
-  }
-  if (!process.env.STRIPE_PRICE_ID) {
-    throw new Error('Missing STRIPE_PRICE_ID env var');
-  }
-  if (!process.env.NEXT_PUBLIC_APP_URL) {
-    throw new Error('Missing NEXT_PUBLIC_APP_URL env var');
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
-
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    line_items: [
-      {
-        price: process.env.STRIPE_PRICE_ID,
-        quantity: 1,
-      },
-    ],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
-    metadata: { uid },
-  });
-
-  return { url: session.url };
+export async function createCheckoutSession(uid: string, priceId: string) {
+    try {
+        const sessionUrl = await createStripeCheckoutSession(uid, priceId);
+        return { url: sessionUrl };
+    } catch (error: any) {
+        console.error('Error creating checkout session:', error.message);
+        // It's better to return an error object than to throw here
+        // so the client can handle it gracefully.
+        return { error: error.message };
+    }
 }
