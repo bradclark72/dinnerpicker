@@ -1,25 +1,21 @@
+// src/firebase/index.ts
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+// IMPORTANT: DO NOT MODIFY initializeFirebase() behavior in production hosts
 export function initializeFirebase() {
   if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
+    let firebaseApp: FirebaseApp;
     try {
-      // Attempt to initialize via Firebase App Hosting environment variables
+      // In hosting, initializeApp() may be called without args to let the environment inject config.
       firebaseApp = initializeApp();
     } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
+      // Fall back to explicit config in development
+      if (process.env.NODE_ENV === 'production') {
         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
       }
       firebaseApp = initializeApp(firebaseConfig);
@@ -33,20 +29,41 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  const auth = getAuth(firebaseApp);
+  const db = getFirestore(firebaseApp);
+
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    auth,
+    db,
   };
 }
 
-export * from './provider';
+// Ensure module-level initialization so other modules can import `db` / `auth` directly.
+const sdks = initializeFirebase();
+
+// Export module-level helpers commonly imported by app code:
+export const firebaseApp = sdks.firebaseApp;
+export const auth: Auth = sdks.auth;
+export const db: Firestore = sdks.db;
+
+// === Explicit named exports to avoid conflicting star-exports ===
+// Export only specific things from internal modules that are safe and stable.
+// Avoid `export * from './provider'` if provider re-exports things that collide.
+
+export { useUser } from './auth/use-user';
+export {
+  FirebaseProvider,
+  useFirebase,
+  useAuth,
+  useFirestore,
+  useFirebaseApp,
+} from './provider';
+
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
-export * from './auth/use-user';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-

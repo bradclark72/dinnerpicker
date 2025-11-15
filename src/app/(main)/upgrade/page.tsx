@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { createCheckoutSession } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
+import { createCheckoutSession, findRestaurant } from '@/actions/server-actions';import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 export default function UpgradePage() {

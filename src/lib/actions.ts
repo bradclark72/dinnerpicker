@@ -1,16 +1,28 @@
-// src/app/actions.ts
 'use server';
 
+import Stripe from 'stripe';
+import { db } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { Restaurant } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import Stripe from 'stripe';
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MILES_TO_METERS = 1609.34;
 
-/**
- * Find a random restaurant near a location using Google Places APIs
- */
+// Stripe Checkout Session
+export async function createCheckoutSession(uid: string) {
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
+    metadata: { uid },
+  });
+  return { url: session.url };
+}
+
+// Find Restaurant
 export async function findRestaurant(data: {
   lat: number;
   lng: number;
@@ -31,10 +43,8 @@ export async function findRestaurant(data: {
   const keyword = cuisines.join(' | ');
 
   try {
-    const searchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusInMeters}&type=restaurant&keyword=${encodeURIComponent(
-      keyword
-    )}&key=${API_KEY}`;
-
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusInMeters}&type=restaurant&keyword=${encodeURIComponent(keyword)}&key=${API_KEY}`;
+    
     const searchResponse = await fetch(searchUrl);
     const searchResult = await searchResponse.json();
 
@@ -46,7 +56,7 @@ export async function findRestaurant(data: {
     if (!searchResult.results || searchResult.results.length === 0) {
       return { restaurant: null, error: 'No restaurants found matching your criteria. Try expanding your search!' };
     }
-
+    
     const chosenPlace = searchResult.results[Math.floor(Math.random() * searchResult.results.length)];
 
     if (!chosenPlace || !chosenPlace.place_id) {
@@ -56,16 +66,15 @@ export async function findRestaurant(data: {
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${chosenPlace.place_id}&fields=name,formatted_address,formatted_phone_number,rating,website,user_ratings_total,geometry,price_level,photos&key=${API_KEY}`;
     const detailsResponse = await fetch(detailsUrl);
     const detailsResult = await detailsResponse.json();
-
+    
     if (detailsResult.status !== 'OK') {
       console.error('Google Place Details API Error:', detailsResult.error_message);
       return { restaurant: null, error: detailsResult.error_message || 'Failed to fetch restaurant details.' };
     }
 
     const firstCuisine = cuisines[0]?.toLowerCase() || 'anything';
-    const placeholder =
-      PlaceHolderImages.find((p) => p.id === firstCuisine) || PlaceHolderImages.find((p) => p.id === 'anything');
-
+    const placeholder = PlaceHolderImages.find(p => p.id === firstCuisine) || PlaceHolderImages.find(p => p.id === 'anything');
+    
     let imageUrl = placeholder?.imageUrl;
     let imageHint = placeholder?.imageHint;
 
@@ -91,44 +100,12 @@ export async function findRestaurant(data: {
       image_url: imageUrl,
       image_hint: imageHint,
     };
-
+    
     return { restaurant: finalRestaurant, error: null };
+
   } catch (err) {
     console.error(err);
     const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
     return { restaurant: null, error: `An unexpected error occurred. ${errorMessage}` };
   }
-}
-
-/**
- * createCheckoutSession - Server action used by your upgrade flow to create a Stripe Checkout session.
- * Expects a `uid` string for linking the session to the user (metadata).
- */
-export async function createCheckoutSession(uid: string) {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('Missing STRIPE_SECRET_KEY env var');
-  }
-  if (!process.env.STRIPE_PRICE_ID) {
-    throw new Error('Missing STRIPE_PRICE_ID env var');
-  }
-  if (!process.env.NEXT_PUBLIC_APP_URL) {
-    throw new Error('Missing NEXT_PUBLIC_APP_URL env var');
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
-
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    line_items: [
-      {
-        price: process.env.STRIPE_PRICE_ID,
-        quantity: 1,
-      },
-    ],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
-    metadata: { uid },
-  });
-
-  return { url: session.url };
 }
