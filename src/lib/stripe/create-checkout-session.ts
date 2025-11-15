@@ -1,53 +1,47 @@
 'use server';
 
-import { stripe } from '.';
-import { headers } from 'next/headers';
-import { adminDb } from '../firebase-admin';
+import Stripe from 'stripe';
 
-export async function createCheckoutSession(
-  uid: string,
-  priceId: string
-): Promise<string> {
-  if (!uid) {
-    throw new Error('User not authenticated');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+/**
+ * Creates a Stripe Checkout Session for a given user and price.
+ *
+ * @param uid The Firebase UID of the user.
+ * @param priceId The ID of the Stripe Price object.
+ * @returns The session URL for the client to redirect to.
+ * @throws Will throw an error if the session creation fails.
+ */
+export async function createCheckoutSession(uid: string, priceId: string): Promise<string> {
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    throw new Error('NEXT_PUBLIC_APP_URL is not set in the environment variables.');
   }
 
-  const origin = headers().get('origin');
-  if (!origin) {
-    throw new Error('Could not determine request origin');
-  }
-
-  // Check if user already has a Stripe customer ID
-  const customerRef = adminDb.collection('customers').doc(uid);
-  const customerSnap = await customerRef.get();
-  let customerId = customerSnap.data()?.stripeId;
-
-  // If not, create a new Stripe customer
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      metadata: { firebaseUID: uid },
-    });
-    customerId = customer.id;
-    await customerRef.set({ stripeId: customerId, userId: uid });
-  }
-
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      // The metadata will be available in the webhook event
+      metadata: {
+        uid,
       },
-    ],
-    mode: priceId === process.env.STRIPE_LIFETIME_PRICE_ID ? 'payment' : 'subscription',
-    customer: customerId,
-    success_url: `${origin}/`,
-    cancel_url: `${origin}/upgrade`,
-  });
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
+    });
 
-  if (!session.url) {
-    throw new Error('Could not create checkout session');
+    if (!session.url) {
+      throw new Error('Could not create Stripe Checkout Session.');
+    }
+
+    return session.url;
+  } catch (error: any) {
+    console.error('Stripe error:', error.message);
+    throw new Error('Failed to create Stripe checkout session.');
   }
-
-  return session.url;
 }
