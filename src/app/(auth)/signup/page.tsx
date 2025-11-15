@@ -1,8 +1,10 @@
 'use client';
 export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { ensureUserDoc } from '@/lib/user-utils';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,12 +28,8 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Call our API route to create the user document in Firestore
-      await fetch('/api/auth/on-create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: userCredential.user.uid, email: userCredential.user.email }),
-      });
+      // Create user document in Firestore
+      await ensureUserDoc(userCredential.user.uid, userCredential.user.email);
       
       toast({
         title: 'Signup Successful',

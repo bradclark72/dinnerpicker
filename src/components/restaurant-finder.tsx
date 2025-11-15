@@ -26,7 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Label }from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
@@ -59,7 +59,7 @@ type ButtonState = "SIGN_UP" | "FREE_PICK" | "UPGRADE" | "UNLIMITED" | "LOADING"
 export default function RestaurantFinder() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, loading, refetch } = useUser();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -174,7 +174,8 @@ export default function RestaurantFinder() {
 
     const buttonState = getButtonState();
     if(buttonState === 'FREE_PICK' && user?.id) {
-      await decrementSpins(user.id);
+     await decrementSpins(user.id);
+     refetch();
     }
     
     let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? cuisines.map(c => c.name).filter(c => c.toLowerCase() !== 'anything') : selectedCuisines;
@@ -233,7 +234,7 @@ export default function RestaurantFinder() {
       case "UPGRADE":
         return (
           <Button onClick={() => router.push('/upgrade')} className="w-full h-14 text-xl font-bold" size="lg">
-            Upgrade now
+            Upgrade now for unlimited picks
           </Button>
         );
       case "UNLIMITED":
@@ -246,6 +247,8 @@ export default function RestaurantFinder() {
         return null;
     }
   };
+
+  const remainingPicks = user ? 3 - user.picksUsed : 0;
 
 
   if (!hasMounted) {
@@ -344,6 +347,11 @@ export default function RestaurantFinder() {
           ) : (
             renderButton()
           )}
+        {buttonState === 'FREE_PICK' && (
+          <p className="text-sm text-muted-foreground">
+            You have {remainingPicks} {remainingPicks === 1 ? 'pick' : 'picks'} remaining.
+          </p>
+        )}
         {locationError && !location && (
           <Button variant="link" onClick={requestLocation}>
             <MapPin className="mr-2 h-4 w-4" /> Enable Location

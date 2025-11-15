@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase, useAuthFromProvider as useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -56,7 +56,7 @@ export function useUser(): UseUserResult {
     return doc(firestore, 'users', firebaseUser.uid);
   }, [firestore, firebaseUser, refetchTrigger]);
 
-  const { data: firestoreUser, isLoading: isLoadingFirestore, error: firestoreError } = useDoc<AppUser>(userDocRef);
+  const { data: firestoreUser, isLoading: isLoadingFirestore, error: firestoreError, refetch: refetchDoc } = useDoc<AppUser>(userDocRef);
 
   const user = useMemo((): User | null => {
     if (!firebaseUser) return null;
@@ -76,9 +76,12 @@ export function useUser(): UseUserResult {
   const loading = isLoadingAuth || (firebaseUser != null && isLoadingFirestore);
   const error = authError || firestoreError;
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     setRefetchTrigger(prev => prev + 1);
-  };
+    if(userDocRef) {
+      refetchDoc();
+    }
+  }, [userDocRef, refetchDoc]);
   
   return { user, loading, error, refetch };
 }
