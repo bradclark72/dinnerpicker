@@ -32,6 +32,10 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
+import { useUser } from '@/firebase/auth/use-user';
+import { useRouter } from 'next/navigation';
+import { decrementSpins } from '@/firebase/firestore';
+
 
 type Cuisine = {
   id: string;
@@ -50,8 +54,12 @@ const cuisines: Cuisine[] = [
   { id: 'seafood', name: 'Seafood', icon: <Fish className="h-5 w-5" /> },
 ];
 
+type ButtonState = "SIGN_UP" | "FREE_PICK" | "UPGRADE" | "UNLIMITED" | "LOADING";
+
 export default function RestaurantFinder() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { user, loading } = useUser();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -163,6 +171,11 @@ export default function RestaurantFinder() {
     
     setIsFinding(true);
     setFoundRestaurant(null);
+
+    const buttonState = getButtonState();
+    if(buttonState === 'FREE_PICK' && user?.id) {
+      await decrementSpins(user.id);
+    }
     
     let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? cuisines.map(c => c.name).filter(c => c.toLowerCase() !== 'anything') : selectedCuisines;
 
@@ -185,7 +198,56 @@ export default function RestaurantFinder() {
       setFoundRestaurant(restaurant);
     }
   };
+
+  const getButtonState = (): ButtonState => {
+    if (loading) return "LOADING";
+    if (!user) return "SIGN_UP";
+    if (user.isPremium) return "UNLIMITED";
+    if (user.picksUsed < 3) return "FREE_PICK";
+    return "UPGRADE";
+  };
   
+  const buttonState = getButtonState();
+
+  const renderButton = () => {
+    switch (buttonState) {
+      case "LOADING":
+        return (
+          <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
+            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+            Loading...
+          </Button>
+        );
+      case "SIGN_UP":
+        return (
+          <Button onClick={() => router.push('/signup')} className="w-full h-14 text-xl font-bold" size="lg">
+            Sign up to start picking
+          </Button>
+        );
+      case "FREE_PICK":
+        return (
+          <Button onClick={handleFindRestaurant} className="w-full h-14 text-xl font-bold" size="lg">
+            Pick a restaurant
+          </Button>
+        );
+      case "UPGRADE":
+        return (
+          <Button onClick={() => router.push('/upgrade')} className="w-full h-14 text-xl font-bold" size="lg">
+            Upgrade now
+          </Button>
+        );
+      case "UNLIMITED":
+        return (
+          <Button onClick={handleFindRestaurant} className="w-full h-14 text-xl font-bold" size="lg">
+            Unlimited picks
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
+
+
   if (!hasMounted) {
     return (
       <Card className="w-full max-w-2xl shadow-2xl">
@@ -280,13 +342,7 @@ export default function RestaurantFinder() {
               Finding...
             </Button>
           ) : (
-            <Button
-              onClick={handleFindRestaurant}
-              className="w-full h-14 text-xl font-bold"
-              size="lg"
-            >
-              Find a Restaurant
-            </Button>
+            renderButton()
           )}
         {locationError && !location && (
           <Button variant="link" onClick={requestLocation}>
