@@ -52,7 +52,9 @@ service cloud.firestore {
 
       allow create: if isOwner(userId) && request.resource.data.id == userId;
 
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id; // Enforce immutability of the id field.
+      // Allow updates if the user is the owner. Prevent the id from being changed.
+      allow update: if isExistingOwner(userId)
+                    && (!('id' in request.resource.data) || request.resource.data.id == resource.data.id);
 
       allow delete: if isExistingOwner(userId);
     }
