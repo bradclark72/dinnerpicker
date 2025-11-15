@@ -1,1 +1,56 @@
-{}
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Random Eats application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "picksUsed": {
+          "type": "number",
+          "description": "Number of restaurant picks the user has used."
+        },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Indicates whether the user is a premium subscriber."
+        }
+      },
+      "required": [
+        "id",
+        "picksUsed",
+        "isPremium"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data including picksUsed and isPremium.  This path utilizes path-based ownership; only the user with the matching {userId} can read or write to this document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, obtained from Firebase Auth."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore data structure is designed to support the authentication and subscription logic for the Random Eats application, focusing on secure and scalable user data management. It adheres to the principles of Authorization Independence and Structural Segregation. All rules are designed to avoid 'get()' calls to maintain atomicity. The design uses path-based ownership for the user data, ensuring secure data access based on the user's unique ID. \n\nSpecifically:\n\n*   `/users/{uid}`: This collection stores user-specific data, including 'picksUsed' and 'isPremium'. Path-based ownership ensures only the authenticated user can access their own document.\n\nThis structure supports the required QAPs (Query Approval Patterns) as follows:\n\n*   Authorization Independence: By storing all necessary authorization data (picksUsed, isPremium) directly within the user document, we avoid the need for 'get()' calls in security rules. This simplifies the rules and enables atomic operations.\n*   Secure List Operations: The structure inherently supports secure list operations. Since each user's data is isolated within their own document under /users/{uid}, listing operations are not applicable here. If there were any listing operations, the homogeneous security posture of the `/users/{uid}` collection would ensure that any listing operation would apply the same security rules to all documents in the collection.\n"
+  }
+}
