@@ -15,8 +15,14 @@ interface AppUser {
   isPremium: boolean;
 }
 
+// Define the shape of your customer data in Firestore
+interface CustomerData {
+    stripeId?: string;
+    stripeLink?: string;
+}
+
 // Define the shape of the user object returned by the hook
-export interface User extends AppUser, FirebaseUser {}
+export interface User extends AppUser, FirebaseUser, CustomerData {}
 
 export interface UseUserResult {
   user: User | null;
@@ -56,7 +62,14 @@ export function useUser(): UseUserResult {
     return doc(firestore, 'users', firebaseUser.uid);
   }, [firestore, firebaseUser, refetchTrigger]);
 
-  const { data: firestoreUser, isLoading: isLoadingFirestore, error: firestoreError, refetch: refetchDoc } = useDoc<AppUser>(userDocRef);
+  const customerDocRef = useMemo(() => {
+    if(!firebaseUser) return null;
+    return doc(firestore, 'customers', firebaseUser.uid);
+  }, [firestore, firebaseUser, refetchTrigger]);
+
+  const { data: firestoreUser, isLoading: isLoadingFirestore, error: firestoreError, refetch: refetchUserDoc } = useDoc<AppUser>(userDocRef);
+  const { data: customerData, isLoading: isLoadingCustomer, error: customerError, refetch: refetchCustomerDoc } = useDoc<CustomerData>(customerDocRef);
+
 
   const user = useMemo((): User | null => {
     if (!firebaseUser) return null;
@@ -69,19 +82,23 @@ export function useUser(): UseUserResult {
       picksUsed: firestoreUser?.picksUsed ?? 0,
       isPremium: firestoreUser?.isPremium ?? false,
       ...firestoreUser, // This will overwrite the defaults if firestoreUser is not null
+      ...customerData, // This will add stripeId and stripeLink if customerData is not null
     };
     return mergedUser;
-  }, [firebaseUser, firestoreUser]);
+  }, [firebaseUser, firestoreUser, customerData]);
 
-  const loading = isLoadingAuth || (firebaseUser != null && isLoadingFirestore);
-  const error = authError || firestoreError;
+  const loading = isLoadingAuth || (firebaseUser != null && (isLoadingFirestore || isLoadingCustomer));
+  const error = authError || firestoreError || customerError;
 
   const refetch = useCallback(() => {
     setRefetchTrigger(prev => prev + 1);
     if(userDocRef) {
-      refetchDoc();
+      refetchUserDoc();
     }
-  }, [userDocRef, refetchDoc]);
+    if (customerDocRef) {
+      refetchCustomerDoc();
+    }
+  }, [userDocRef, customerDocRef, refetchUserDoc, refetchCustomerDoc]);
   
   return { user, loading, error, refetch };
 }
