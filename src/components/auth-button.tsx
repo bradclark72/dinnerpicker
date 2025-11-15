@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/firebase';
+import { useAuthFromProvider } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/firebase/auth/use-user';
@@ -18,7 +18,7 @@ import { Skeleton } from './ui/skeleton';
 
 export default function AuthButton() {
   const router = useRouter();
-  const auth = useAuth();
+  const auth = useAuthFromProvider();
   const { user, loading } = useUser();
 
   const handleLogout = async () => {

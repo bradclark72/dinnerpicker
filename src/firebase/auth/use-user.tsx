@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirebase, useAuth } from '@/firebase';
+import { useFirebase, useAuthFromProvider as useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import type { User as FirebaseUser } from 'firebase/auth';

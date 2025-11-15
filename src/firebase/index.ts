@@ -42,24 +42,25 @@ export function getSdks(firebaseApp: FirebaseApp) {
 // Ensure module-level initialization so other modules can import `db` / `auth` directly.
 const sdks = initializeFirebase();
 
-// Export module-level helpers commonly imported by app code:
+// Export module-level instances
 export const firebaseApp = sdks.firebaseApp;
 export const auth: Auth = sdks.auth;
 export const db: Firestore = sdks.db;
 
 // === Explicit named exports to avoid conflicting star-exports ===
-// Export only specific things from internal modules that are safe and stable.
-// Avoid `export * from './provider'` if provider re-exports things that collide.
-
+// Auth exports
 export { useUser } from './auth/use-user';
+
+// Provider exports
 export {
   FirebaseProvider,
   useFirebase,
-  useAuth,
+  useAuth as useAuthFromProvider,
   useFirestore,
   useFirebaseApp,
 } from './provider';
 
+// Other exports
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';

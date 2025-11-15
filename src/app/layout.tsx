@@ -25,9 +25,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <SeasonalBackground />
-        <div className="relative z-10">
-          {children}
-        </div>
+        <div className="relative z-10">{children}</div>
         <Toaster />
       </body>
     </html>
