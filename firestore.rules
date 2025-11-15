@@ -24,7 +24,7 @@ service cloud.firestore {
      * @path /users/{userId}
      * @allow (create) - An authenticated user can create their own document if the `id` matches their `auth.uid`.
      * @allow (get) - An authenticated user can read their own document if the `userId` matches their `auth.uid`.
-     * @allow (update) - An authenticated user can update their own document if the `userId` matches their `auth.uid`.
+     * @allow (update) - An authenticated user can update their own document if the `userId` matches their `auth.uid` and they do not tamper with protected fields like `isPremium`.
      * @allow (delete) - An authenticated user can delete their own document if the `userId` matches their `auth.uid`.
      * @deny (create) - An unauthenticated user cannot create a user document.
      * @deny (create) - An authenticated user cannot create a document with an `id` that doesn't match their `auth.uid`.
@@ -32,9 +32,8 @@ service cloud.firestore {
      * @deny (get) - An authenticated user cannot read another user's document.
      * @deny (update) - An unauthenticated user cannot update any user document.
      * @deny (update) - An authenticated user cannot update another user's document.
-     * @deny (delete) - An unauthenticated user cannot delete any user document.
-     * @deny (delete) - An authenticated user cannot delete another user's document.
-     * @principle Enforces document ownership for all operations.
+     * @deny (update) - A non-premium user cannot set their `isPremium` flag to true.
+     * @principle Enforces document ownership and field-level security for all operations.
      */
     match /users/{userId} {
       // Helper function to check if the request is made by the owner of the document.
@@ -47,15 +46,24 @@ service cloud.firestore {
         return isOwner(userId) && resource != null;
       }
 
+      // Read access: only the owner can get their own document.
       allow get: if isOwner(userId);
-      allow list: if false; // Listing users is not permitted.
 
+      // List access: nobody can list the users collection.
+      allow list: if false;
+
+      // Create access: only the owner can create their document, and the doc 'id' must match their UID.
       allow create: if isOwner(userId) && request.resource.data.id == userId;
 
-      // Allow updates if the user is the owner. Prevent the id from being changed.
+      // Update access:
+      // - Must be the owner of the existing document.
+      // - Cannot change the 'id' field.
+      // - Cannot grant themselves premium status. Only server-side logic can set isPremium to true.
       allow update: if isExistingOwner(userId)
-                    && (!('id' in request.resource.data) || request.resource.data.id == resource.data.id);
-
+                    && (!('id' in request.resource.data) || request.resource.data.id == resource.data.id)
+                    && (request.resource.data.isPremium == false || request.resource.data.isPremium == resource.data.isPremium);
+                    
+      // Delete access: only the owner can delete their document.
       allow delete: if isExistingOwner(userId);
     }
   }
