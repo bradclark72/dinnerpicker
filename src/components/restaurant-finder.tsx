@@ -32,9 +32,10 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
-import { useUser, useFirestore } from '@/firebase';
-import { decrementSpins } from '@/firebase/firestore';
+import { useUser } from '@/firebase/auth/use-user';
 import { useRouter } from 'next/navigation';
+import { db } from '@/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 
 type Cuisine = {
   id: string;
@@ -59,7 +60,6 @@ export default function RestaurantFinder() {
   const { toast } = useToast();
   const router = useRouter();
   const { user, loading, refetch } = useUser();
-  const db = useFirestore();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -69,7 +69,7 @@ export default function RestaurantFinder() {
   const [foundRestaurant, setFoundRestaurant] = React.useState<Restaurant | null>(null);
   const [hasMounted, setHasMounted] = React.useState(false);
   const resultRef = React.useRef<HTMLDivElement>(null);
-  
+
   React.useEffect(() => {
     setHasMounted(true);
   }, []);
@@ -85,7 +85,7 @@ export default function RestaurantFinder() {
       });
       return;
     }
-  
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocation({
@@ -108,10 +108,10 @@ export default function RestaurantFinder() {
       }
     );
   }, [toast]);
-  
+
   React.useEffect(() => {
     if (navigator.geolocation) {
-      navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
+      navigator.permissions.query({ name: 'geolocation' }).then((permissionStatus) => {
         if (permissionStatus.state === 'granted') {
           requestLocation();
         } else if (permissionStatus.state === 'denied') {
@@ -134,19 +134,37 @@ export default function RestaurantFinder() {
       setSelectedCuisines(['Anything']);
       return;
     }
-    
+
     setSelectedCuisines((prev) => {
       let newCuisines;
       if (prev.includes(cuisineName)) {
         newCuisines = prev.filter((c) => c !== cuisineName);
       } else {
-        newCuisines = [...prev.filter(c => c !== 'Anything'), cuisineName];
+        newCuisines = [...prev.filter((c) => c !== 'Anything'), cuisineName];
       }
-      if(newCuisines.length === 0) {
+      if (newCuisines.length === 0) {
         return ['Anything'];
       }
       return newCuisines;
     });
+  };
+
+  // Helper: get uid robustly whether your useUser returns uid or id
+  const getUid = () => {
+    return (user as any)?.uid ?? (user as any)?.id ?? null;
+  };
+
+  const incrementPickCount = async (): Promise<void> => {
+    const uid = getUid();
+    if (!uid) return;
+    try {
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, { picksUsed: increment(1) });
+      // Refresh local user after update so UI shows new count
+      if (typeof refetch === 'function') await refetch();
+    } catch (err) {
+      console.error('Failed to increment picksUsed:', err);
+    }
   };
 
   const handleFindRestaurant = async () => {
@@ -159,7 +177,7 @@ export default function RestaurantFinder() {
       });
       return;
     }
-    
+
     if (selectedCuisines.length === 0) {
       toast({
         variant: 'destructive',
@@ -168,17 +186,19 @@ export default function RestaurantFinder() {
       });
       return;
     }
-    
+
     setIsFinding(true);
     setFoundRestaurant(null);
 
     const buttonState = getButtonState();
-    if(buttonState === 'FREE_PICK' && user?.id) {
-      decrementSpins(db, user.id);
-      await refetch();
+
+    // If this is a free pick, increment immediately (optimistic server-side counter)
+    if (buttonState === 'FREE_PICK') {
+      await incrementPickCount();
     }
-    
-    let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? cuisines.map(c => c.name).filter(c => c.toLowerCase() !== 'anything') : selectedCuisines;
+
+    let cuisinesToSearch =
+      selectedCuisines[0].toLowerCase() === 'anything' ? cuisines.map((c) => c.name).filter((c) => c.toLowerCase() !== 'anything') : selectedCuisines;
 
     const { restaurant, error } = await findRestaurant({
       lat: location.lat,
@@ -186,7 +206,6 @@ export default function RestaurantFinder() {
       cuisines: cuisinesToSearch,
       radius: radius[0],
     });
-    
 
     setIsFinding(false);
     if (error) {
@@ -195,49 +214,52 @@ export default function RestaurantFinder() {
         title: 'Search Failed',
         description: error,
       });
+      // If the find failed, we may want to roll back picksUsed — but keep it simple for now.
     } else if (restaurant) {
       setFoundRestaurant(restaurant);
     }
   };
 
   const getButtonState = (): ButtonState => {
-    if (loading) return "LOADING";
-    if (!user) return "SIGN_UP";
-    if (user.isPremium) return "UNLIMITED";
-    if (user.picksUsed < 3) return "FREE_PICK";
-    return "UPGRADE";
+    if (loading) return 'LOADING';
+    if (!user) return 'SIGN_UP';
+    const isPremium = (user as any)?.isPremium ?? false;
+    const picksUsed = (user as any)?.picksUsed ?? 0;
+    if (isPremium) return 'UNLIMITED';
+    if (picksUsed < 3) return 'FREE_PICK';
+    return 'UPGRADE';
   };
-  
+
   const buttonState = getButtonState();
 
   const renderButton = () => {
     switch (buttonState) {
-      case "LOADING":
+      case 'LOADING':
         return (
           <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
             <Loader2 className="mr-2 h-6 w-6 animate-spin" />
             Loading...
           </Button>
         );
-      case "SIGN_UP":
+      case 'SIGN_UP':
         return (
           <Button onClick={() => router.push('/signup')} className="w-full h-14 text-xl font-bold" size="lg">
             Sign up to start picking
           </Button>
         );
-      case "FREE_PICK":
+      case 'FREE_PICK':
         return (
           <Button onClick={handleFindRestaurant} className="w-full h-14 text-xl font-bold" size="lg">
             Pick a restaurant
           </Button>
         );
-      case "UPGRADE":
+      case 'UPGRADE':
         return (
           <Button onClick={() => router.push('/upgrade')} className="w-full h-14 text-xl font-bold" size="lg">
             Upgrade now for unlimited picks
           </Button>
         );
-      case "UNLIMITED":
+      case 'UNLIMITED':
         return (
           <Button onClick={handleFindRestaurant} className="w-full h-14 text-xl font-bold" size="lg">
             Unlimited picks
@@ -248,8 +270,7 @@ export default function RestaurantFinder() {
     }
   };
 
-  const remainingPicks = user ? 3 - user.picksUsed : 0;
-
+  const remainingPicks = user ? Math.max(0, 3 - ((user as any).picksUsed ?? 0)) : 0;
 
   if (!hasMounted) {
     return (
@@ -323,30 +344,20 @@ export default function RestaurantFinder() {
             Distance (miles)
           </Label>
           <div className="flex items-center gap-4">
-            <Slider
-              id="radius-slider"
-              min={1}
-              max={30}
-              step={1}
-              value={radius}
-              onValueChange={setRadius}
-              disabled={isFinding}
-            />
-            <div className="w-12 text-center text-lg font-semibold text-primary">
-              {radius[0]}
-            </div>
+            <Slider id="radius-slider" min={1} max={30} step={1} value={radius} onValueChange={setRadius} disabled={isFinding} />
+            <div className="w-12 text-center text-lg font-semibold text-primary">{radius[0]}</div>
           </div>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
         {isFinding ? (
-            <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
-              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-              Finding...
-            </Button>
-          ) : (
-            renderButton()
-          )}
+          <Button disabled className="w-full h-14 text-xl font-bold" size="lg">
+            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+            Finding...
+          </Button>
+        ) : (
+          renderButton()
+        )}
         {buttonState === 'FREE_PICK' && (
           <p className="text-sm text-muted-foreground">
             You have {remainingPicks} {remainingPicks === 1 ? 'pick' : 'picks'} remaining.
@@ -361,8 +372,8 @@ export default function RestaurantFinder() {
 
       {foundRestaurant && (
         <div ref={resultRef}>
-            <Separator className="my-6" />
-            <RestaurantCard restaurant={foundRestaurant} />
+          <Separator className="my-6" />
+          <RestaurantCard restaurant={foundRestaurant} />
         </div>
       )}
     </Card>

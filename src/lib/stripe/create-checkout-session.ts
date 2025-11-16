@@ -21,6 +21,7 @@ export async function createCheckoutSession(uid: string, priceId: string): Promi
   const customerSnap = await customerRef.get();
 
   let stripeId = customerSnap.data()?.stripeId;
+  let stripeLink = customerSnap.data()?.stripeLink;
 
   // If the user is not yet a customer in Stripe, create one.
   if (!stripeId) {
@@ -33,9 +34,18 @@ export async function createCheckoutSession(uid: string, priceId: string): Promi
     });
     
     stripeId = customer.id;
+    // Create a portal link for the customer to manage their subscription.
+    const portalSession = await stripe.billingPortal.sessions.create({
+        customer: stripeId,
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account`,
+    });
+    stripeLink = portalSession.url;
+
+
     await customerRef.set({
         stripeId: stripeId,
         userId: uid,
+        stripeLink: stripeLink,
     }, { merge: true });
   }
 

@@ -1,4 +1,4 @@
-
+// src/firebase/index.ts
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -6,20 +6,28 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-let firebaseApp: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-
+// IMPORTANT: DO NOT MODIFY initializeFirebase() behaviour in production hosts
 export function initializeFirebase() {
   if (!getApps().length) {
-    firebaseApp = initializeApp(firebaseConfig);
-    auth = getAuth(firebaseApp);
-    db = getFirestore(firebaseApp);
-  } else {
-    firebaseApp = getApp();
-    auth = getAuth(firebaseApp);
-    db = getFirestore(firebaseApp);
+    let firebaseApp: FirebaseApp;
+    try {
+      firebaseApp = initializeApp();
+    } catch (e) {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+      }
+      firebaseApp = initializeApp(firebaseConfig);
+    }
+
+    return getSdks(firebaseApp);
   }
+
+  return getSdks(getApp());
+}
+
+export function getSdks(firebaseApp: FirebaseApp) {
+  const auth = getAuth(firebaseApp);
+  const db = getFirestore(firebaseApp);
 
   return {
     firebaseApp,
@@ -28,21 +36,17 @@ export function initializeFirebase() {
   };
 }
 
-// === Explicit named exports to avoid conflicting star-exports ===
-// Auth exports
+// module-level initialization
+const sdks = initializeFirebase();
+
+export const firebaseApp = sdks.firebaseApp;
+export const auth: Auth = sdks.auth;
+export const db: Firestore = sdks.db;
+
+// Explicit exports to avoid conflicting star-exports
 export { useUser } from './auth/use-user';
+export { UserProvider } from './provider';
 
-// Provider exports
-export {
-  FirebaseProvider,
-  useFirebase,
-  useAuth,
-  useAuth as useAuthFromProvider,
-  useFirestore,
-  useFirebaseApp,
-} from './provider';
-
-// Other exports
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';

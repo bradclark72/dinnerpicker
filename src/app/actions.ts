@@ -1,8 +1,10 @@
+// src/app/actions.ts
 'use server';
 
 import type { Restaurant } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { createCheckoutSession as createStripeCheckoutSession } from '@/lib/stripe/create-checkout-session';
+
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MILES_TO_METERS = 1609.34;
@@ -100,17 +102,15 @@ export async function findRestaurant(data: {
 }
 
 /**
- * createCheckoutSession - Wraps the Stripe checkout session creation.
- * This function is now just a pass-through to the more robust implementation in /lib/stripe.
+ * createCheckoutSession - Server action used by upgrade flow to create a Stripe Checkout session.
+ * Expects a `uid` string for linking the session to the user (metadata).
  */
 export async function createCheckoutSession(uid: string, priceId: string) {
-    try {
-        const sessionUrl = await createStripeCheckoutSession(uid, priceId);
-        return { url: sessionUrl };
-    } catch (error: any) {
-        console.error('Error creating checkout session:', error.message);
-        // It's better to return an error object than to throw here
-        // so the client can handle it gracefully.
-        return { error: error.message };
-    }
+  try {
+    const url = await createStripeCheckoutSession(uid, priceId);
+    return { url, error: null };
+  } catch (error: any) {
+    console.error('Error creating checkout session:', error);
+    return { url: null, error: error.message };
+  }
 }
