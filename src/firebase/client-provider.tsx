@@ -1,30 +1,19 @@
+// src/firebase/client-provider.tsx
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
-import { FirebaseProvider } from '@/firebase/provider';
-import { initializeFirebase } from '@/firebase';
-import { FirebaseApp } from 'firebase/app';
-import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
+import React from 'react';
+import { firebaseApp, auth, db } from './index';
+import { FirebaseProvider } from './provider';
 
-interface FirebaseClientProviderProps {
-  children: ReactNode;
-}
-
-export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const { firebaseApp, auth, db } = useMemo(() => {
-    // Initialize Firebase on the client side, once per component mount.
-    const { firebaseApp, auth, db } = initializeFirebase();
-    return { firebaseApp, auth, db };
-  }, []); // Empty dependency array ensures this runs only once
-
+/**
+ * Convenience wrapper to provide the default initialized SDKs at top-level.
+ * Use in app/layout.tsx (client component) like:
+ * <FirebaseClientProvider>{children}</FirebaseClientProvider>
+ */
+export const FirebaseClientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <FirebaseProvider
-      firebaseApp={firebaseApp}
-      auth={auth}
-      firestore={db}
-    >
+    <FirebaseProvider firebaseApp={firebaseApp} firestore={db} auth={auth}>
       {children}
     </FirebaseProvider>
   );
-}
+};
