@@ -1,6 +1,7 @@
 'use server';
 
 import Stripe from 'stripe';
+import { adminDb } from '@/lib/firebase-admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -18,8 +19,12 @@ export async function createCheckoutSession(uid: string, priceId: string): Promi
   }
 
   try {
+    // Check if the user already has a Stripe customer ID
+    const customerSnap = await adminDb.collection('customers').doc(uid).get();
+    const customerData = customerSnap.data();
+    const customerId = customerData?.stripeId;
+
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
       payment_method_types: ['card'],
       line_items: [
         {
@@ -27,10 +32,10 @@ export async function createCheckoutSession(uid: string, priceId: string): Promi
           quantity: 1,
         },
       ],
-      // The metadata will be available in the webhook event
-      metadata: {
-        uid,
-      },
+      mode: priceId === process.env.NEXT_PUBLIC_STRIPE_LIFETIME_PRICE_ID ? 'payment' : 'subscription',
+       // The metadata will be available in the webhook event
+      customer: customerId, // Use existing customer or let Stripe create one
+      client_reference_id: uid, // Pass the Firebase UID here
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
     });

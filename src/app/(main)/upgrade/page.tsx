@@ -1,12 +1,46 @@
 'use client';
-export const dynamic = 'force-dynamic';
-
-import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase/auth/use-user';
+import { createCheckoutSession } from '@/app/actions';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function UpgradePage() {
-  const monthlyLink = "https://buy.stripe.com/test_fZu6oG3Ma1dR6D540F8AE04";
-  const lifetimeLink = "https://buy.stripe.com/test_8x26oGaay8GjbXpdBf8AE05";
+  const router = useRouter();
+  const { user, loading: userLoading } = useUser();
+  const { toast } = useToast();
+  const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
+  
+  const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!;
+  const lifetimePriceId = process.env.NEXT_PUBLIC_STRIPE_LIFETIME_PRICE_ID!;
+
+  const handleCheckout = async (priceId: string) => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    setLoadingPriceId(priceId);
+    try {
+      const result = await createCheckoutSession(user.uid, priceId);
+      if (result.url) {
+        router.push(result.url);
+      } else if (result.error) {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Checkout Error',
+        description: error.message,
+      });
+      setLoadingPriceId(null);
+    }
+  };
+
+  const isLoading = (priceId: string) => userLoading || loadingPriceId === priceId;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
@@ -34,18 +68,21 @@ export default function UpgradePage() {
                 <span>Unlimited restaurant picks</span>
               </li>
               <li className="flex items-center">
-                <span className="text-green-500 mr-2 text-xl">✓</span>
-                <span>No waiting for resets</span>
+                <span className="text-green-500 mr-2 text-xl">✓_</span>
+                <span>All Future features included</span>
               </li>
                <li className="flex items-center">
                 <span className="text-green-500 mr-2 text-xl">✓</span>
-                <span>Ongoing access to all features</span>
+                <span>Clicking Anywhere you currently are</span>
               </li>
             </ul>
-            <Button asChild className="w-full bg-indigo-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition-colors">
-                <Link href={monthlyLink}>
-                    Subscribe Now
-                </Link>
+            <Button 
+              onClick={() => handleCheckout(monthlyPriceId)} 
+              disabled={isLoading(monthlyPriceId)}
+              className="w-full bg-indigo-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition-colors"
+            >
+              {isLoading(monthlyPriceId) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Subscribe Now
             </Button>
           </div>
 
@@ -73,10 +110,13 @@ export default function UpgradePage() {
                 <span>All future features included</span>
               </li>
             </ul>
-            <Button asChild className="w-full py-4 rounded-lg font-bold text-lg">
-                <Link href={lifetimeLink}>
-                    Get Lifetime Access
-                </Link>
+            <Button 
+              onClick={() => handleCheckout(lifetimePriceId)} 
+              disabled={isLoading(lifetimePriceId)}
+              className="w-full py-4 rounded-lg font-bold text-lg"
+            >
+              {isLoading(lifetimePriceId) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Get Lifetime Access
             </Button>
           </div>
         </div>
