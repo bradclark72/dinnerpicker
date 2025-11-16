@@ -1,27 +1,29 @@
 'use client';
-import { doc, increment, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { initializeFirebase } from '.';
-import { errorEmitter } from './error-emitter';
-import { FirestorePermissionError } from './errors';
 
-export function decrementSpins(userId: string) {
+export async function decrementSpins(userId: string) {
   if (!userId) {
     return;
   }
-  // This function now correctly gets the initialized db instance
-  const { db: firestore } = initializeFirebase();
-  const userDocRef = doc(firestore, `users/${userId}`);
-  const updateData = { picksUsed: increment(1) };
-
-  // Use non-blocking update with proper error handling
-  updateDoc(userDocRef, updateData)
-    .catch((error) => {
-      // Create and emit a rich, contextual error for debugging
-      const permissionError = new FirestorePermissionError({
-        path: userDocRef.path,
-        operation: 'update',
-        requestResourceData: updateData,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+  
+  try {
+    const { db: firestore } = initializeFirebase();
+    const userDocRef = doc(firestore, `users/${userId}`);
+    
+    // Get current picksUsed value
+    const userDoc = await getDoc(userDocRef);
+    const currentPicks = userDoc.data()?.picksUsed || 0;
+    
+    // Use setDoc with merge to update
+    await setDoc(userDocRef, {
+      picksUsed: currentPicks + 1,
+      updatedAt: new Date()
+    }, { merge: true });
+    
+    console.log('Decremented spins for user:', userId);
+  } catch (error) {
+    console.error('Failed to decrement spins:', error);
+    // Don't throw - let the app continue even if update fails
+  }
 }

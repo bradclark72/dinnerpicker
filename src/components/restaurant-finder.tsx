@@ -26,16 +26,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Label }from '@/components/ui/label';
+import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
-import { useRouter } from 'next/navigation';
 import { decrementSpins } from '@/firebase/firestore';
-
+import { useRouter } from 'next/navigation';
 
 type Cuisine = {
   id: string;
@@ -173,10 +172,15 @@ export default function RestaurantFinder() {
     setFoundRestaurant(null);
 
     const buttonState = getButtonState();
-    if(buttonState === 'FREE_PICK' && user?.id) {
-     await decrementSpins(user.id);
-     refetch();
-    }
+if(buttonState === 'FREE_PICK' && user?.id) {
+  try {
+    await decrementSpins(user.id);
+    await refetch();
+  } catch (error) {
+    console.error('Failed to decrement spins:', error);
+    // Continue anyway - don't block restaurant finding
+  }
+}
     
     let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? cuisines.map(c => c.name).filter(c => c.toLowerCase() !== 'anything') : selectedCuisines;
 
