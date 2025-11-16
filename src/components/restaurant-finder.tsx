@@ -32,7 +32,7 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser, useFirestore } from '@/firebase';
 import { decrementSpins } from '@/firebase/firestore';
 import { useRouter } from 'next/navigation';
 
@@ -59,6 +59,7 @@ export default function RestaurantFinder() {
   const { toast } = useToast();
   const router = useRouter();
   const { user, loading, refetch } = useUser();
+  const db = useFirestore();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -172,15 +173,10 @@ export default function RestaurantFinder() {
     setFoundRestaurant(null);
 
     const buttonState = getButtonState();
-if(buttonState === 'FREE_PICK' && user?.id) {
-  try {
-    await decrementSpins(user.id);
-    await refetch();
-  } catch (error) {
-    console.error('Failed to decrement spins:', error);
-    // Continue anyway - don't block restaurant finding
-  }
-}
+    if(buttonState === 'FREE_PICK' && user?.id) {
+      decrementSpins(db, user.id);
+      await refetch();
+    }
     
     let cuisinesToSearch = selectedCuisines[0].toLowerCase() === 'anything' ? cuisines.map(c => c.name).filter(c => c.toLowerCase() !== 'anything') : selectedCuisines;
 

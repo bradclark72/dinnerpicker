@@ -1,7 +1,12 @@
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/firebase';
+'use client';
+import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
 
-export async function ensureUserDoc(uid: string, email: string | null = null) {
+export async function ensureUserDoc(db: Firestore, uid: string, email: string | null = null) {
+  if (!uid) {
+    console.error('ensureUserDoc called with no UID.');
+    return;
+  }
+  
   const userRef = doc(db, 'users', uid);
   
   // Check if document already exists
@@ -9,16 +14,20 @@ export async function ensureUserDoc(uid: string, email: string | null = null) {
   
   if (!userSnap.exists()) {
     // Create new user document
-    await setDoc(userRef, {
-      uid: uid,
-      email: email || '',
-      membership: 'free',
-      picksUsed: 0,
-      isPremium: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    console.log('Created new user doc for:', uid);
+    try {
+      await setDoc(userRef, {
+        id: uid, // Use id to match security rules
+        email: email || '',
+        picksUsed: 0,
+        isPremium: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      console.log('Created new user doc for:', uid);
+    } catch (error) {
+       console.error('Failed to create user document:', error);
+       // Re-throw or handle as needed, for now just logging.
+    }
   } else {
     console.log('User doc already exists for:', uid);
   }

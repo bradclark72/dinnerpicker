@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { ensureUserDoc } from '@/lib/user-utils';
 import { useRouter } from 'next/navigation';
@@ -19,6 +19,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -29,7 +30,7 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Create user document in Firestore
-      await ensureUserDoc(userCredential.user.uid, userCredential.user.email);
+      await ensureUserDoc(db, userCredential.user.uid, userCredential.user.email);
       
       toast({
         title: 'Signup Successful',

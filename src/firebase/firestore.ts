@@ -1,29 +1,29 @@
 'use client';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { initializeFirebase } from '.';
+import { doc, setDoc, getDoc, Firestore, increment } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
-export async function decrementSpins(userId: string) {
+export function decrementSpins(db: Firestore, userId: string) {
   if (!userId) {
+    console.error('decrementSpins called with no userId');
     return;
   }
   
-  try {
-    const { db: firestore } = initializeFirebase();
-    const userDocRef = doc(firestore, `users/${userId}`);
-    
-    // Get current picksUsed value
-    const userDoc = await getDoc(userDocRef);
-    const currentPicks = userDoc.data()?.picksUsed || 0;
-    
-    // Use setDoc with merge to update
-    await setDoc(userDocRef, {
-      picksUsed: currentPicks + 1,
-      updatedAt: new Date()
-    }, { merge: true });
-    
-    console.log('Decremented spins for user:', userId);
-  } catch (error) {
-    console.error('Failed to decrement spins:', error);
-    // Don't throw - let the app continue even if update fails
-  }
+  const userDocRef = doc(db, `users/${userId}`);
+  const updateData = {
+    picksUsed: increment(1)
+  };
+
+  // Use setDoc with merge to update. This is non-blocking.
+  setDoc(userDocRef, updateData, { merge: true })
+    .catch((error) => {
+      // Create and emit a rich, contextual error for debugging
+      const permissionError = new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      console.error('Failed to decrement spins due to permission error:', error);
+    });
 }
