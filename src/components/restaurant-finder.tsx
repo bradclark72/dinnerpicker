@@ -221,13 +221,7 @@ export default function RestaurantFinder() {
   };
 
   const getButtonState = (): ButtonState => {
-    if (loading) return 'LOADING';
-    if (!user) return 'SIGN_UP';
-    const isPremium = (user as any)?.isPremium ?? false;
-    const picksUsed = (user as any)?.picksUsed ?? 0;
-    if (isPremium) return 'UNLIMITED';
-    if (picksUsed < 3) return 'FREE_PICK';
-    return 'UPGRADE';
+    return 'UNLIMITED';
   };
 
   const buttonState = getButtonState();
@@ -262,7 +256,7 @@ export default function RestaurantFinder() {
       case 'UNLIMITED':
         return (
           <Button onClick={handleFindRestaurant} className="w-full h-14 text-xl font-bold" size="lg">
-            Unlimited picks
+            Pick a restaurant
           </Button>
         );
       default:
