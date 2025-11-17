@@ -1,5 +1,5 @@
 'use client';
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';

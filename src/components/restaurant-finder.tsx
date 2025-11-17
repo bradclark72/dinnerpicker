@@ -32,7 +32,7 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { db } from '@/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';

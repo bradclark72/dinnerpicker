@@ -42,7 +42,7 @@ export {
   useFirebaseApp,
 } from './provider';
 
-export { useFullUser } from './auth/use-user';
+export { useFullUser as useUser } from './auth/use-user';
 
 export * from './client-provider';
 export * from './firestore/use-collection';

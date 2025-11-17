@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuthFromProvider } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser } from '@/firebase';
 import { LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ import { Skeleton } from './ui/skeleton';
 
 export default function AuthButton() {
   const router = useRouter();
-  const auth = useAuthFromProvider();
+  const auth = useAuth();
   const { user, loading } = useUser();
 
   const handleLogout = async () => {
