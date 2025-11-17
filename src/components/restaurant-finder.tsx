@@ -32,9 +32,8 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { db } from '@/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 
 type Cuisine = {
@@ -60,6 +59,7 @@ export default function RestaurantFinder() {
   const { toast } = useToast();
   const router = useRouter();
   const { user, loading, refetch } = useUser();
+  const db = useFirestore();
 
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
@@ -156,7 +156,7 @@ export default function RestaurantFinder() {
 
   const incrementPickCount = async (): Promise<void> => {
     const uid = getUid();
-    if (!uid) return;
+    if (!uid || !db) return;
     try {
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, { picksUsed: increment(1) });
@@ -221,7 +221,20 @@ export default function RestaurantFinder() {
   };
 
   const getButtonState = (): ButtonState => {
-    return 'UNLIMITED';
+    if (loading) {
+      return 'LOADING';
+    }
+    if (!user) {
+      return 'SIGN_UP';
+    }
+    if (user.isPremium) {
+      return 'UNLIMITED';
+    }
+    const remainingPicks = 3 - (user.picksUsed ?? 0);
+    if (remainingPicks > 0) {
+      return 'FREE_PICK';
+    }
+    return 'UPGRADE';
   };
 
   const buttonState = getButtonState();
