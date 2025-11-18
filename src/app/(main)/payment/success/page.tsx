@@ -1,4 +1,3 @@
-// src/app/(main)/payment/success/page.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -6,7 +5,7 @@ import { useEffect } from "react";
 import { auth, db } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 
-// Lightweight confetti with no dependencies
+// small confetti function
 function fireConfetti() {
   const duration = 900;
   const end = Date.now() + duration;
@@ -20,11 +19,10 @@ function fireConfetti() {
     p.style.width = "8px";
     p.style.height = "8px";
     p.style.background = colors[Math.floor(Math.random() * colors.length)];
-    p.style.opacity = "0.9";
     p.style.borderRadius = "50%";
+    p.style.opacity = "0.9";
     p.style.pointerEvents = "none";
     document.body.appendChild(p);
-
     setTimeout(() => p.remove(), 1200);
 
     if (Date.now() < end) requestAnimationFrame(frame);
@@ -35,27 +33,35 @@ export default function PaymentSuccessPage() {
   const router = useRouter();
 
   useEffect(() => {
-    async function updatePremium() {
-      const user = auth.currentUser;
-      if (!user) return;
+    console.log("🔥 Success page mounted");
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      console.log("👤 Auth state:", user);
+
+      if (!user) {
+        console.warn("⚠ No user found — redirecting anyway");
+        setTimeout(() => router.push("/"), 2000);
+        return;
+      }
 
       try {
+        console.log("⬆ Updating Firestore premium flag...");
         await updateDoc(doc(db, "users", user.uid), {
           isPremium: true,
         });
+        console.log("✅ Premium updated!");
       } catch (err) {
-        console.error("Premium update failed:", err);
+        console.error("❌ updateDoc error:", err);
       }
 
-      // Run our lightweight confetti
       fireConfetti();
 
-      // Redirect home
+      console.log("➡ Redirecting home in 2 sec...");
       setTimeout(() => router.push("/"), 2000);
-    }
+    });
 
-    updatePremium();
-  }, []);
+    return () => unsubscribe();
+  }, [router]);
 
   return (
     <div className="p-14 text-center bg-yellow-50 rounded-lg shadow-md">
