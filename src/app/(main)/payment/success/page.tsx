@@ -5,7 +5,31 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { auth, db } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import confetti from "canvas-confetti";
+
+// Lightweight confetti with no dependencies
+function fireConfetti() {
+  const duration = 900;
+  const end = Date.now() + duration;
+
+  (function frame() {
+    const colors = ["#bb0000", "#ffffff", "#00bb00", "#0000bb"];
+    const p = document.createElement("div");
+    p.style.position = "fixed";
+    p.style.top = Math.random() * 100 + "%";
+    p.style.left = Math.random() * 100 + "%";
+    p.style.width = "8px";
+    p.style.height = "8px";
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.opacity = "0.9";
+    p.style.borderRadius = "50%";
+    p.style.pointerEvents = "none";
+    document.body.appendChild(p);
+
+    setTimeout(() => p.remove(), 1200);
+
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+}
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
@@ -15,7 +39,6 @@ export default function PaymentSuccessPage() {
       const user = auth.currentUser;
       if (!user) return;
 
-      // Firestore update
       try {
         await updateDoc(doc(db, "users", user.uid), {
           isPremium: true,
@@ -24,14 +47,10 @@ export default function PaymentSuccessPage() {
         console.error("Premium update failed:", err);
       }
 
-      // 🎉 Confetti celebration
-      confetti({
-        particleCount: 120,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
+      // Run our lightweight confetti
+      fireConfetti();
 
-      // Redirect back to home
+      // Redirect home
       setTimeout(() => router.push("/"), 2000);
     }
 
