@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
+import SeasonalBackground from '@/components/SeasonalBackground';
 
 export const metadata: Metadata = {
   title: 'Dinner Picker',
@@ -23,12 +24,16 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased">
+
+      <body className="font-body antialiased relative">
+        {/* 🎉 Automatic Seasonal Background */}
+        <SeasonalBackground />
+
         <FirebaseClientProvider>
-            <div className="relative z-10">
-              {children}
-            </div>
-            <Toaster />
+          <div className="relative z-10">
+            {children}
+          </div>
+          <Toaster />
         </FirebaseClientProvider>
       </body>
     </html>
