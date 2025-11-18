@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { auth } from '@/firebase';
+import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
-// NEW — ensures the Firestore user document exists & is correctly formatted
-import { ensureUserProfile } from '@/lib/createUserProfile';
+// ⬇️ ADD THIS HERE
+import { ensureUserProfile } from '../../../lib/createUserProfile';
+
 
 export default function SignupPage() {
   const router = useRouter();
