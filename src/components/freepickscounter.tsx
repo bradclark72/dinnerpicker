@@ -1,48 +1,49 @@
-// src/components/FreePicksCounter.tsx
-'use client';
+// src/components/freepicksCounter.tsx
+"use client";
 
-import React from 'react';
-import { useFreePicks } from '@/hooks/useFreePicks';
+import { useState } from "react";
+import { doc, updateDoc, increment } from "firebase/firestore";
+import { auth, db } from "@/firebase";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
-export default function FreePicksCounter({
-  freeLimit = 3,
-  onRequestUpgrade,
-}: {
-  freeLimit?: number;
-  onRequestUpgrade?: () => void;
-}) {
-  const { remaining, picksUsed, isPremium, outOfPicks, loading, error, userLoading, usePick } = useFreePicks({ freeLimit });
+export default function FreePicksCounter() {
+  const { profile, loading } = useUserProfile();
+  const [error, setError] = useState("");
 
-  if (userLoading) return <div>Loading...</div>;
-  if (error) return <div>Error loading picks</div>;
+  if (loading) return null;
+  if (!profile) return null;
+
+  const isPremium = profile.isPremium;
+  const picksUsed = profile.picksUsed ?? 0;
+  const remaining = 3 - picksUsed;
+
+  async function handleUsePick() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        picksUsed: increment(1),
+      });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    }
+  }
+
+  if (isPremium) {
+    return <p className="text-green-600">Premium user — unlimited picks!</p>;
+  }
 
   return (
-    <div className="free-picks">
-      {isPremium ? (
-        <div className="text-sm">Premium account — unlimited picks</div>
+    <div>
+      <p>You have {remaining} free picks remaining.</p>
+      {remaining > 0 ? (
+        <button onClick={handleUsePick}>Use a Pick</button>
       ) : (
-        <div className="text-sm">
-          Free picks remaining: <strong>{remaining}</strong> / {freeLimit}
-        </div>
+        <p className="text-red-600">You've used all your free picks.</p>
       )}
-
-      <div style={{ marginTop: 8 }}>
-        <button
-          onClick={async () => {
-            const res = await usePick();
-            if (!res.ok && res.reason === 'out-of-picks' && onRequestUpgrade) {
-              onRequestUpgrade();
-            } else if (!res.ok) {
-              // show error
-              alert('Could not use pick: ' + (res.reason || 'unknown'));
-            }
-          }}
-          disabled={loading || (!isPremium && outOfPicks)}
-          className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50"
-        >
-          {loading ? 'Using…' : isPremium ? 'Use pick (premium)' : 'Use free pick'}
-        </button>
-      </div>
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 }
