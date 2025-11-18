@@ -7,10 +7,11 @@ export async function ensureUserProfile(uid: string, email: string) {
 
   if (!snap.exists()) {
     await setDoc(userRef, {
+      id: uid,
       email: email || '',
       picksUsed: 0,
       isPremium: false,
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     });
   }
 }
