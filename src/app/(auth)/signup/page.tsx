@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { auth } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { ensureUserProfile } from '@/lib/createUserProfile';
@@ -12,9 +12,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { db } from '@/firebase';
 
 export default function SignupPage() {
   const router = useRouter();
+  const auth = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

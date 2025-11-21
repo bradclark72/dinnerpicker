@@ -15,8 +15,8 @@ export default function UpgradePage() {
   const { toast } = useToast();
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
 
-  const monthlyLink = "https://buy.stripe.com/test_fZu6oG3Ma1dR6D540F8AE04";
-  const lifetimeLink = "https://buy.stripe.com/test_8x26oGaay8GjbXpdBf8AE05";
+  const monthlyLink = "https://buy.stripe.com/eVqeVcdmK3lZ8Ldbt78AE09";
+  const lifetimeLink = "https://buy.stripe.com/28EcN4gyW5u7aTl0Ot8AE0a";
 
   const handleRedirect = (url: string) => {
     if (!user) {
