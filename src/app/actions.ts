@@ -4,6 +4,9 @@
 
 import type { Restaurant } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { initFirebaseAdmin } from './firebase-admin';
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MILES_TO_METERS = 1609.34;
@@ -97,5 +100,40 @@ export async function findRestaurant(data: {
     console.error(err);
     const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
     return { restaurant: null, error: `An unexpected error occurred. ${errorMessage}` };
+  }
+}
+
+/**
+ * Deletes a user's account and all associated data.
+ * This is a destructive action and cannot be undone.
+ * @param uid The user's ID.
+ */
+export async function deleteUserAccount(uid: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const app = initFirebaseAdmin();
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const userDocRef = db.collection('users').doc(uid);
+    const customerDocRef = db.collection('customers').doc(uid);
+
+    // Using a batch to ensure atomicity for Firestore deletions
+    const batch = db.batch();
+    batch.delete(userDocRef);
+    batch.delete(customerDocRef);
+    await batch.commit();
+    
+    // Delete user from Firebase Authentication
+    await auth.deleteUser(uid);
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting user account:', error);
+    // It's possible the Firestore docs don't exist, which is fine.
+    // We only want to surface critical errors.
+    if (error.code === 'auth/user-not-found') {
+        return { success: true }; // Already deleted, consider it a success.
+    }
+    return { success: false, error: error.message || 'An unknown error occurred during account deletion.' };
   }
 }
