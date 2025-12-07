@@ -1,6 +1,8 @@
 // src/app/firebase-admin.ts
 import { initializeApp, getApps, cert, applicationDefault } from "firebase-admin/app";
 
+// Note: .env is loaded by src/ai/dev.ts for local development
+
 export function initFirebaseAdmin() {
   // Prevent reinitialization errors during server actions
   if (getApps().length > 0) {
@@ -22,6 +24,10 @@ export function initFirebaseAdmin() {
   // Local development fallback
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
+  if (!projectId || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
+    throw new Error('Missing Firebase Admin SDK credentials. Please check your .env file.');
+  }
+
   return initializeApp({
     credential: cert({
       projectId,
@@ -30,4 +36,3 @@ export function initFirebaseAdmin() {
     }),
   });
 }
-
