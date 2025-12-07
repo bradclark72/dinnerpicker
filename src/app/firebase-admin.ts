@@ -1,23 +1,33 @@
-
 // src/app/firebase-admin.ts
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps, cert, applicationDefault } from "firebase-admin/app";
 
 export function initFirebaseAdmin() {
-  // Check if the app is already initialized to prevent errors
-  if (!admin.apps.length) {
-    // Make sure the environment variable is set.
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.');
-    }
-    try {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-        });
-    } catch (e) {
-        console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e);
-        throw new Error('Could not initialize Firebase Admin SDK. Service account key may be malformed.');
-    }
+  // Prevent reinitialization errors during server actions
+  if (getApps().length > 0) {
+    return getApps()[0];
   }
-  return admin.app();
+
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID ||
+    process.env.GOOGLE_CLOUD_PROJECT; // Google App Hosting injects this automatically
+
+  // On Google App Hosting → use Google's built-in credentials (no private key needed)
+  if (process.env.GOOGLE_CLOUD_PROJECT && !process.env.FIREBASE_PRIVATE_KEY) {
+    return initializeApp({
+      credential: applicationDefault(),
+      projectId,
+    });
+  }
+
+  // Local development fallback
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+  return initializeApp({
+    credential: cert({
+      projectId,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey,
+    }),
+  });
 }
+
