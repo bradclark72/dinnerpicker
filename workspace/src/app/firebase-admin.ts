@@ -1,8 +1,10 @@
 
 // src/app/firebase-admin.ts
 import { initializeApp, getApps, cert, applicationDefault } from "firebase-admin/app";
+import { config } from 'dotenv';
 
-// Note: .env is loaded by next.config.js for all server-side code
+// Explicitly load environment variables from .env file
+config();
 
 export function initFirebaseAdmin() {
   // Prevent reinitialization errors during server actions
