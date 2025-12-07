@@ -1,6 +1,8 @@
-
 // src/app/actions.ts
 'use server';
+
+// Ensure environment variables are loaded for server-side actions.
+require('dotenv').config();
 
 import type { Restaurant } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
