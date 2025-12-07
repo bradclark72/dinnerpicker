@@ -1,3 +1,4 @@
+
 // src/app/actions.ts
 'use server';
 
@@ -7,7 +8,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initFirebaseAdmin } from './firebase-admin';
 
-// Note: .env is loaded by src/ai/dev.ts for local development
+// Note: .env is loaded by src/app/firebase-admin.ts for local development
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MILES_TO_METERS = 1609.34;
 
