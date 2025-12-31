@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import {
   Bean,
   Beef,
@@ -316,8 +317,7 @@ export default function RestaurantFinder() {
     <Card className="w-full max-w-2xl shadow-2xl animate-in fade-in duration-500">
       <CardHeader className="text-center">
         <div className="flex justify-center items-center gap-3">
-          <UtensilsCrossed className="h-8 w-8 text-primary" />
-          <CardTitle className="font-headline text-4xl">Dinner Picker</CardTitle>
+          <Image src="/title.png" alt="Dinner Picker" width={300} height={75} />
         </div>
         <CardDescription className="pt-2 text-base">
           Can't decide where to eat? Let fate pick for you!
