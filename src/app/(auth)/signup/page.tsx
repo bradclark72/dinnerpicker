@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/firebase/hooks';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { ensureUserProfile } from '@/lib/createUserProfile';
@@ -12,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { db } from '@/firebase';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      if (!auth) throw new Error("Auth service is not available.");
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       await ensureUserProfile(user.uid, user.email ?? '');
@@ -83,7 +84,7 @@ export default function SignupPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col">
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || !auth}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create account
             </Button>

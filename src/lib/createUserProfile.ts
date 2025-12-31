@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { db } from '@/firebase/firebase';
 
 export async function ensureUserProfile(uid: string, email: string) {
   const userRef = doc(db, 'users', uid);

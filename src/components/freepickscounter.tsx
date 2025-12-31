@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { doc, updateDoc, increment } from "firebase/firestore";
-import { auth, db } from "@/firebase";
+import { auth, db } from "@/firebase/firebase";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
 export default function FreePicksCounter() {

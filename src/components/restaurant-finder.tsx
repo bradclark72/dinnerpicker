@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -32,7 +33,7 @@ import { Toggle } from '@/components/ui/toggle';
 import RestaurantCard from './restaurant-card';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase/hooks';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 
@@ -149,9 +150,8 @@ export default function RestaurantFinder() {
     });
   };
 
-  // Helper: get uid robustly whether your useUser returns uid or id
   const getUid = () => {
-    return (user as any)?.uid ?? (user as any)?.id ?? null;
+    return user?.uid ?? null;
   };
 
   const incrementPickCount = async (): Promise<void> => {
@@ -160,7 +160,6 @@ export default function RestaurantFinder() {
     try {
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, { picksUsed: increment(1) });
-      // Refresh local user after update so UI shows new count
       if (typeof refetch === 'function') await refetch();
     } catch (err) {
       console.error('Failed to increment picksUsed:', err);
@@ -192,7 +191,6 @@ export default function RestaurantFinder() {
 
     const buttonState = getButtonState();
 
-    // If this is a free pick, increment immediately (optimistic server-side counter)
     if (buttonState === 'FREE_PICK') {
       await incrementPickCount();
     }
@@ -214,7 +212,6 @@ export default function RestaurantFinder() {
         title: 'Search Failed',
         description: error,
       });
-      // If the find failed, we may want to roll back picksUsed — but keep it simple for now.
     } else if (restaurant) {
       setFoundRestaurant(restaurant);
     }
@@ -277,7 +274,7 @@ export default function RestaurantFinder() {
     }
   };
 
-  const remainingPicks = user ? Math.max(0, 3 - ((user as any).picksUsed ?? 0)) : 0;
+  const remainingPicks = user ? Math.max(0, 3 - (user.picksUsed ?? 0)) : 0;
 
   if (!hasMounted) {
     return (

@@ -1,7 +1,8 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/firebase/hooks';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
+      if (!auth) throw new Error("Auth service is not available.");
       await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Login Successful',
@@ -75,7 +77,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !auth}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign in
             </Button>

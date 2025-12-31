@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { auth, db } from "@/firebase";
+import { auth, db } from "@/firebase/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
 export function useUserProfile() {
@@ -10,26 +10,27 @@ export function useUserProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+        if (!user) {
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
 
-    if (!user) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
+        const ref = doc(db, "users", user.uid);
+        const unsubSnapshot = onSnapshot(ref, (snap) => {
+          if (snap.exists()) {
+            setProfile(snap.data());
+          } else {
+            setProfile(null);
+          }
+          setLoading(false);
+        });
 
-    const ref = doc(db, "users", user.uid);
-
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setProfile(snap.data());
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
+        return () => unsubSnapshot();
     });
 
-    return () => unsub();
+    return () => unsubscribe();
   }, []);
 
   return { profile, loading };

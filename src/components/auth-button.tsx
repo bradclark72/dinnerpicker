@@ -2,10 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase/hooks';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/firebase';
 import { LogIn, LogOut, User as UserIcon, Trash2, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -40,6 +39,7 @@ export default function AuthButton() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const handleLogout = async () => {
+    if (!auth) return;
     await auth.signOut();
     router.push('/');
   };
@@ -57,7 +57,7 @@ export default function AuthButton() {
       });
       // The onAuthStateChanged listener will handle redirecting the user out.
       // Force a sign out on the client to speed up the process.
-      await auth.signOut();
+      if (auth) await auth.signOut();
       router.push('/');
     } else {
       toast({
